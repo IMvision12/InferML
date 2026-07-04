@@ -1,7 +1,7 @@
 {
   "name": "localml-webui",
   "productName": "LocalML",
-  "version": "0.3.2",
+  "version": "1.0.0",
   "description": "LocalML web UI build tooling. The app itself ships as the Python package `localml` (see pyproject.toml).",
   "private": true,
   "author": {
