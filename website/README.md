@@ -77,7 +77,7 @@ Every push to `main` redeploys automatically. Custom domain (e.g. `localml.app`)
 
 ## Updating
 
-- Change the install command: edit the `.cmd[data-copy]` block in the hero and the `#install` steps.
+- Change the install command: edit the hero `#hero-cmd` block (its Windows variant is set in `script.js`) and the two `#install` one-liner `.cmd` blocks.
 - Change the tagline: edit `.hero-h1` + `.hero-sub`.
 - Change the API snippet: edit the `.api-pre` code in the `#api` section (the copy button reads the rendered text, so no separate `data-copy` is needed there).
 - Swap the mock screenshot for a real one: replace the `.screenshot-content` block with an `<img src="assets/screenshot.png">`.
