@@ -1,121 +1,28 @@
 {
-  "name": "localml",
+  "name": "localml-webui",
   "productName": "LocalML",
   "version": "0.3.2",
-  "description": "Any HuggingFace model. Local. Multi-modal.",
-  "main": "src/main/main.js",
+  "description": "LocalML web UI build tooling. The app itself ships as the Python package `localml` (see pyproject.toml).",
+  "private": true,
   "author": {
     "name": "LocalML"
   },
   "scripts": {
-    "start": "electron .",
-    "dev": "npm run gen:archs && node scripts/dev.js",
-    "clean": "node scripts/clean.js",
-    "icons": "node scripts/build-icons.js",
-    "build:renderer": "node scripts/build-renderer.js",
-    "build:renderer:watch": "node scripts/build-renderer.js --watch",
     "gen:archs": "python python/_generate_supported_architectures.py",
     "check:archs": "python python/_generate_supported_architectures.py --check",
-    "dist": "npm run gen:archs && npm run build:renderer && npm run icons && electron-builder --publish never",
-    "dist:win": "npm run gen:archs && npm run build:renderer && npm run icons && electron-builder --win --publish never",
-    "dist:mac": "npm run gen:archs && npm run build:renderer && npm run icons && electron-builder --mac --publish never",
-    "dist:linux": "npm run gen:archs && npm run build:renderer && npm run icons && electron-builder --linux --publish never"
-  },
-  "build": {
-    "appId": "com.localml.app",
-    "productName": "LocalML",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "src/main/**/*.js",
-      "src/renderer/dist/**/*",
-      "package.json",
-      "!**/*.map",
-      "!**/__pycache__/**",
-      "!**/*.test.js",
-      "!**/*.spec.js"
-    ],
-    "extraResources": [
-      {
-        "from": "python",
-        "to": "python",
-        "filter": [
-          "**/*",
-          "!**/__pycache__/**",
-          "!**/*.pyc",
-          "!_test_inference.py"
-        ]
-      }
-    ],
-    "win": {
-      "icon": "build/icon.ico",
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    },
-    "nsis": {
-      "oneClick": true,
-      "perMachine": false,
-      "runAfterFinish": true,
-      "deleteAppDataOnUninstall": false,
-      "installerIcon": "build/icon.ico",
-      "uninstallerIcon": "build/icon.ico",
-      "installerHeaderIcon": "build/icon.ico",
-      "artifactName": "${productName}-Setup-${version}.${ext}"
-    },
-    "mac": {
-      "icon": "build/icon.png",
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
-      ],
-      "category": "public.app-category.developer-tools"
-    },
-    "linux": {
-      "icon": "build/icon.png",
-      "target": [
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "category": "Development"
-    },
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "IMvision12",
-        "repo": "localml-app"
-      }
-    ]
+    "build:renderer": "node scripts/build-renderer.js",
+    "build:renderer:watch": "node scripts/build-renderer.js --watch",
+    "bundle:webui": "node scripts/bundle-webui.js",
+    "build": "npm run build:renderer && npm run bundle:webui",
+    "clean": "node scripts/clean.js"
   },
   "devDependencies": {
-    "@babel/standalone": "^7.29.0",
-    "electron": "^33.2.1",
-    "electron-builder": "^26.8.1",
-    "esbuild": "^0.28.0",
-    "png-to-ico": "^3.0.1",
-    "sharp": "^0.34.5"
+    "esbuild": "^0.28.0"
   },
   "dependencies": {
     "dompurify": "^3.4.2",
-    "electron-updater": "^6.3.9",
     "marked": "^18.0.3",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "systeminformation": "^5.23.5"
+    "react-dom": "^18.3.1"
   }
 }

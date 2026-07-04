@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "localml"
+version = "0.3.2"
+description = "Any HuggingFace model. Local. Multi-modal. Served over an OpenAI-compatible API."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "LocalML" }]
+keywords = ["huggingface", "transformers", "inference", "openai", "local", "llm", "diffusion"]
+
+# The web server layer. The inference stack (torch, transformers, diffusers, …)
+# is declared in the `inference` extra so `pipx install localml` stays fast and
+# the heavy, hardware-specific torch wheels can be pinned to the right index by
+# the user. Phase 5 finalizes the CPU/GPU install story and bundles the built
+# frontend as package data.
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.29",
+  "huggingface_hub",
+  "platformdirs>=4",
+  "psutil>=5.9",
+]
+
+[project.optional-dependencies]
+inference = [
+  "transformers>=5.7.0",
+  "torch>=2.6",
+  "torchvision",
+  "torchaudio>=2.6",
+  "diffusers",
+  "accelerate",
+  "timm",
+  "pillow",
+  "soundfile",
+  "librosa",
+  "numpy",
+  "scipy",
+  "sentencepiece",
+  "protobuf",
+]
+
+[project.scripts]
+localml = "server.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/IMvision12/localml-app"
+
+# The Python sources live under python/ as flat modules + subpackages (the
+# inference engine imports `routing`, `adapters`, `tasks`, `models` at top
+# level). Map the package root to python/ and ship both shapes.
+[tool.setuptools]
+package-dir = { "" = "python" }
+py-modules = ["engine", "routing", "runner", "io_utils", "output_kinds", "_win_compat"]
+
+[tool.setuptools.packages.find]
+where = ["python"]
+include = ["server*", "adapters*", "tasks*", "models*", "plugins*"]
+
+[tool.setuptools.package-data]
+# Per-family JSON + the compiled frontend and routing tables bundled inside the
+# `server` package by `npm run build` (scripts/bundle-webui.js).
+"*" = ["*.json"]
+"server" = ["webui/**/*", "_data/**/*"]

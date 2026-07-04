@@ -58,11 +58,15 @@ function generateHtml() {
     '<script src="$1.js"></script>',
   );
 
-  // The dist HTML lives one directory deeper than the source HTML
-  // (src/renderer/dist/index.html vs src/renderer/index.html), so the
-  // relative paths into node_modules need one more level of `..` to still
-  // resolve to the repo-root / asar-root node_modules.
-  html = html.replace(/(["'])\.\.\/\.\.\/node_modules\//g, '$1../../../node_modules/');
+  // Vendor the browser runtime deps (react, react-dom, marked, dompurify) so
+  // the built frontend is self-contained and needs no node_modules at runtime
+  // — required for the Node-free `pipx install localml` web server. Each
+  // `../../node_modules/<pkg>/<path>/<file>` script src is rewritten to
+  // `/vendor/<file>`, and the files themselves are copied by copyVendorAssets().
+  html = html.replace(
+    /(["'])\.\.\/\.\.\/node_modules\/[^"']*\/([^"'\/]+)(["'])/g,
+    '$1/vendor/$2$3',
+  );
 
   // Tighten CSP: drop 'unsafe-eval'. Anything else stays.
   html = html.replace(/\s*'unsafe-eval'/g, '');
@@ -75,10 +79,34 @@ function generateHtml() {
 // aren't transformed (CSS, fonts, anything dropped into src/renderer/).
 function copyStaticAssets() {
   fs.mkdirSync(OUT_DIR, { recursive: true });
-  for (const name of ['styles.css']) {
+  for (const name of ['styles.css', 'web-bridge.js']) {
     const src = path.join(RENDERER_DIR, name);
     if (fs.existsSync(src)) {
       fs.copyFileSync(src, path.join(OUT_DIR, name));
+    }
+  }
+}
+
+// Copy the browser runtime UMD bundles into dist/vendor/ so the built
+// frontend loads them from same-origin `/vendor/*` (see generateHtml's
+// rewrite) rather than reaching into node_modules. This is what lets the
+// Python web server serve a fully self-contained UI with no Node present.
+const VENDOR_FILES = [
+  ['react',     'umd/react.production.min.js'],
+  ['react-dom', 'umd/react-dom.production.min.js'],
+  ['marked',    'lib/marked.umd.js'],
+  ['dompurify', 'dist/purify.min.js'],
+];
+function copyVendorAssets() {
+  const outVendor = path.join(OUT_DIR, 'vendor');
+  fs.mkdirSync(outVendor, { recursive: true });
+  const nm = path.join(ROOT, 'node_modules');
+  for (const [pkg, relPath] of VENDOR_FILES) {
+    const src = path.join(nm, pkg, relPath);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, path.join(outVendor, path.basename(relPath)));
+    } else {
+      console.warn(`[renderer] vendor asset missing: ${pkg}/${relPath} (run npm install)`);
     }
   }
 }
@@ -119,6 +147,7 @@ async function buildOnce() {
   await esbuild.build({ ...baseBuildOpts, entryPoints: entries });
   generateHtml();
   copyStaticAssets();
+  copyVendorAssets();
 
   console.log(`[renderer] compiled ${entries.length} component(s) → ${rel(OUT_COMPONENTS)}`);
 }
@@ -135,6 +164,7 @@ async function buildWatch() {
   // edits in some editors, so we rebuild on any event.
   generateHtml();
   copyStaticAssets();
+  copyVendorAssets();
   try {
     fs.watch(SRC_HTML, () => {
       try { generateHtml(); console.log('[renderer] re-emitted index.html'); } catch (e) { console.warn('[renderer] html rebuild failed:', e.message); }
