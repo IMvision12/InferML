@@ -1,4 +1,4 @@
-"""image-segmentation — variants: semantic, instance, panoptic (all compose an overlay)."""
+"""image-segmentation - variants: semantic, instance, panoptic (all compose an overlay)."""
 from __future__ import annotations
 
 from .base import TaskHandler, TaskVariant
@@ -7,7 +7,7 @@ from io_utils import decode_image
 import output_kinds as ok
 
 
-# Canonical palettes for well-known datasets — keeps colors stable across runs
+# Canonical palettes for well-known datasets - keeps colors stable across runs
 # and matches what users see in the literature.
 CITYSCAPES_PALETTE = {
     "road":          (128, 64, 128),  "sidewalk":    (244, 35, 232),
@@ -46,7 +46,7 @@ def _color_for(label: str, chosen: dict) -> tuple:
 
 
 def _build_overlay(img, results, params):
-    """Shared overlay composition — covers semantic, instance, panoptic equally
+    """Shared overlay composition - covers semantic, instance, panoptic equally
     well as long as each result has a `mask` PIL image."""
     import numpy as np
     from PIL import Image
@@ -93,7 +93,7 @@ def _build_overlay(img, results, params):
 
 class SegmentationVariant(TaskVariant):
     """Works for semantic (Segformer/MaskFormer), instance (Mask2Former) and
-    panoptic (DETR-panoptic) — the HF pipeline returns a uniform `list[{label,
+    panoptic (DETR-panoptic) - the HF pipeline returns a uniform `list[{label,
     score, mask}]` shape for all three."""
     name = "pipeline-masks"
 

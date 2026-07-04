@@ -47,7 +47,7 @@ const Icon = ({ name, size = 14, stroke = 1.5, style = {} }) => {
 };
 window.Icon = Icon;
 
-// Brand mark — constellation. Kept separate from Icon because it has its own
+// Brand mark - constellation. Kept separate from Icon because it has its own
 // fills/gradients and shouldn't inherit currentColor. Renders the same SVG at
 // any size; both 14px (titlebar) and 72px (welcome) call the same component.
 const Logo = ({ size = 32, style = {} }) => (

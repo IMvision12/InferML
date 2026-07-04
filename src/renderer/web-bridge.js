@@ -1,7 +1,7 @@
 // LocalML web bridge.
 //
 // Reimplements the `window.localml.*` API that the React components use, backed
-// by HTTP + SSE against the local FastAPI server — replacing Electron's
+// by HTTP + SSE against the local FastAPI server - replacing Electron's
 // contextBridge/preload.js. Loaded (as a classic script) BEFORE the component
 // scripts so `window.localml` exists by the time they mount.
 //
@@ -63,7 +63,7 @@
   function _refreshStatusSync() {
     try {
       const xhr = new XMLHttpRequest();
-      xhr.open('GET', BASE + '/api/status', false); // synchronous — one tiny request at load
+      xhr.open('GET', BASE + '/api/status', false); // synchronous - one tiny request at load
       xhr.send();
       if (xhr.status === 200) _statusCache = JSON.parse(xhr.responseText);
     } catch {}
@@ -237,18 +237,19 @@
     logs: {
       list: () => jget('/api/logs'),
       view: () => { try { window.open('/api/logs', '_blank'); } catch {} return Promise.resolve({ ok: true }); },
-      // Returns a string path — the component renders it directly as a React
+      // Returns a string path - the component renders it directly as a React
       // child, so this must NOT be an object.
       path: () => jget('/api/app').then((r) => (r && r.dataDir) || ''),
       clear: () => Promise.resolve({ ok: true }),
       onUpdate: () => () => {},
     },
 
-    // ── storage (Electron-cache management → no-ops in the web app) ───────────
+    // ── storage: model cache + runtime footprint ─────────────────────────────
     storage: {
-      size: () => Promise.resolve({ bytes: 0 }),
-      clearHfCache: () => Promise.resolve({ ok: true }),
-      clearPyRuntime: () => Promise.resolve({ ok: true }),
+      size: (key) => jget('/api/storage/size?key=' + encodeURIComponent(key)),
+      clearHfCache: () => jpost('/api/storage/clear', { key: 'hfCache' }),
+      // The Python runtime is pip-managed; deleting it would break the server.
+      clearPyRuntime: () => Promise.resolve({ ok: false, error: 'The Python runtime is installed via pip - manage it with pipx, not from here.' }),
     },
 
     // ── auto-update (not applicable to the pip-installed server) ──────────────

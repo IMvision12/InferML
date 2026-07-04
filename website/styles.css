@@ -147,7 +147,7 @@ a { color: inherit; text-decoration: none; }
   z-index: 1;
 }
 
-/* Aurora — soft drifting color blobs behind the hero. Breaks out of the
+/* Aurora - soft drifting color blobs behind the hero. Breaks out of the
    .hero max-width so the glow fills the full viewport, not just the center.
    A soft mask fades the glow out near the top and bottom so it never
    hard-cuts into the nav or the screenshot below. */
@@ -213,7 +213,7 @@ a { color: inherit; text-decoration: none; }
   100% { transform: translate(20px, 120px) scale(0.9); }
 }
 
-/* Drifting constellation dots — subtle particle field, full viewport width. */
+/* Drifting constellation dots - subtle particle field, full viewport width. */
 .hero-stars {
   position: absolute;
   top: 0; bottom: 0;
@@ -462,7 +462,7 @@ a { color: inherit; text-decoration: none; }
   color: var(--fg-3);
 }
 
-/* TTS demo — text card on the left, audio player on the right */
+/* TTS demo - text card on the left, audio player on the right */
 .demo-text-card {
   width: 100%;
   aspect-ratio: 4 / 3;
@@ -587,7 +587,7 @@ a { color: inherit; text-decoration: none; }
 .dot.red { background: #ff5f57; }
 .dot.yellow { background: #febc2e; }
 .dot.green { background: #28c840; }
-/* LocalML brand mark in the chrome — the canonical constellation SVG
+/* LocalML brand mark in the chrome - the canonical constellation SVG
    (same one in the top nav). Sized to match the dots and brand-text
    height. The SVG renders its own background + stars, so we only need
    layout here. */
@@ -603,7 +603,7 @@ a { color: inherit; text-decoration: none; }
   font-weight: 500;
   flex-shrink: 0;
 }
-/* Generic pill base — used by the warn / update / installed variants.
+/* Generic pill base - used by the warn / update / installed variants.
    These are <span>s (not <button>s) so we don't have to fight the native
    button user-agent style sheet. */
 .chrome-pill {
@@ -620,7 +620,7 @@ a { color: inherit; text-decoration: none; }
   white-space: nowrap;
 }
 .chrome-pill-ic { font-size: 10px; line-height: 1; display: inline-flex; }
-/* Warn pill — unset Python runtime. RGBA fallback colors instead of
+/* Warn pill - unset Python runtime. RGBA fallback colors instead of
    color-mix() so this renders identically on every browser (color-mix
    silently bails in older Chromium / Safari without a fallback). */
 .chrome-pill-warn {
@@ -628,13 +628,13 @@ a { color: inherit; text-decoration: none; }
   border-color: rgba(245, 158, 11, 0.55);
   color: #f59e0b;
 }
-/* Update pill — green, positive nudge */
+/* Update pill - green, positive nudge */
 .chrome-pill-update {
   background: rgba(16, 185, 129, 0.13);
   border-color: rgba(16, 185, 129, 0.55);
   color: #10b981;
 }
-/* Installed pill — neutral with a small status dot. The dot is yellow
+/* Installed pill - neutral with a small status dot. The dot is yellow
    (warn color) when count is 0, which is what we render in the mock. */
 .chrome-pill-installed { color: var(--fg-2); }
 .chrome-pill-dot {
@@ -651,7 +651,7 @@ a { color: inherit; text-decoration: none; }
 }
 /* Push the stats cluster all the way to the right */
 .chrome-spacer { flex: 1; }
-/* Live system stats — same look as the real app's tb-stats */
+/* Live system stats - same look as the real app's tb-stats */
 .chrome-stats {
   display: inline-flex; align-items: center; gap: 8px;
   font-size: 10.5px; color: var(--fg-2);
@@ -681,7 +681,7 @@ a { color: inherit; text-decoration: none; }
   padding: 16px 12px;
   background: var(--bg-2);
 }
-/* Sidebar nav — matches the real app's two stacked sidebar buttons:
+/* Sidebar nav - matches the real app's two stacked sidebar buttons:
    Home (active, subtle accent border) and Installed only (neutral). */
 .scr-nav {
   display: flex; flex-direction: column; gap: 6px;
@@ -705,7 +705,7 @@ a { color: inherit; text-decoration: none; }
 .scr-nav-btn svg { color: var(--fg-2); flex-shrink: 0; }
 .scr-nav-btn.active svg { color: var(--accent); }
 /* Sidebar brand mark (kept for any other place it might be referenced).
-   The constellation SVG paints itself — only layout is needed. */
+   The constellation SVG paints itself - only layout is needed. */
 .scr-logo { display: block; flex-shrink: 0; }
 .scr-search {
   background: var(--bg-3); border: 1px solid var(--border); border-radius: 6px;
@@ -966,3 +966,189 @@ a { color: inherit; text-decoration: none; }
 }
 .footer-links a:hover { color: var(--fg); }
 .footer-sub { color: var(--fg-3); font-size: 12.5px; }
+
+/* ─── command block (copyable) ─────────────────────────────────────────── */
+.cmd {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 12px 12px 12px 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-2);
+  border-radius: 12px;
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  max-width: 100%;
+}
+.cmd-hero {
+  padding: 15px 14px 15px 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(96, 165, 250, 0.1) inset;
+}
+.cmd-prompt { color: var(--accent); font-weight: 600; user-select: none; flex-shrink: 0; }
+.cmd-text {
+  color: var(--fg); font-size: 14.5px; white-space: nowrap;
+  overflow-x: auto; scrollbar-width: none;
+}
+.cmd-text::-webkit-scrollbar { display: none; }
+.cmd-hero .cmd-text { font-size: clamp(14px, 2.4vw, 17px); }
+.cmd-pkg { color: var(--accent); }
+.cmd-str { color: #34d399; }
+.cmd-copy {
+  display: inline-flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+  height: 30px; padding: 0 11px;
+  margin-left: 4px;
+  background: var(--bg-3);
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  color: var(--fg-2);
+  font-family: 'Inter', sans-serif;
+  font-size: 12.5px; font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s, transform 0.15s;
+}
+.cmd-copy:hover { color: var(--fg); background: var(--bg-4); border-color: var(--fg-3); transform: translateY(-1px); }
+.cmd-copy-ic { display: block; flex-shrink: 0; }
+.cmd-copy.is-copied { color: var(--ok); border-color: rgba(16, 185, 129, 0.5); background: rgba(16, 185, 129, 0.12); }
+.cta-sub code, .install-foot code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9em;
+  padding: 2px 6px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg);
+}
+
+/* Browser address bar in the mock chrome (replaces the native titlebar) */
+.chrome-url {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 24px; padding: 0 12px;
+  margin-left: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--fg-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  min-width: 0; max-width: 260px;
+  overflow: hidden;
+}
+.chrome-lock { color: var(--ok); flex-shrink: 0; }
+.chrome-url-host { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ─── api ──────────────────────────────────────────────────────────────── */
+.api { max-width: 1200px; margin: 140px auto 0; padding: 0 32px; }
+.api-frame {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 28px;
+  align-items: stretch;
+}
+@media (max-width: 860px) { .api-frame { grid-template-columns: 1fr; gap: 20px; } }
+.api-code {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(96, 165, 250, 0.08) inset;
+}
+.api-code-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px;
+  background: var(--bg-3);
+  border-bottom: 1px solid var(--border);
+}
+.api-code-file { margin-left: 6px; font-size: 12px; color: var(--fg-3); }
+.api-code-copy { margin-left: auto; height: 28px; }
+.api-pre {
+  margin: 0; padding: 22px 24px;
+  font-size: 13px; line-height: 1.7;
+  color: var(--fg);
+  overflow-x: auto;
+  tab-size: 4;
+}
+.api-pre code { font-family: inherit; }
+.tok-kw  { color: #c084fc; }
+.tok-str { color: #34d399; }
+.tok-fn  { color: var(--accent); }
+.tok-com { color: var(--fg-3); font-style: italic; }
+.api-points {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column;
+  align-self: center;
+}
+.api-points li {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 15px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px; color: var(--fg-2); line-height: 1.5;
+}
+.api-points li:last-child { border-bottom: 0; }
+.api-points b { color: var(--fg); font-weight: 600; }
+.api-pt-ic {
+  flex-shrink: 0;
+  width: 30px; height: 30px; border-radius: 8px;
+  background: rgba(96, 165, 250, 0.14);
+  color: var(--accent);
+  display: grid; place-items: center;
+  font-size: 14px;
+}
+
+/* ─── install steps ────────────────────────────────────────────────────── */
+.install { max-width: 1100px; margin: 140px auto 0; padding: 0 32px; }
+.install .section-head { margin-bottom: 44px; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
+.step {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 26px 22px 22px;
+  transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+}
+.step:hover { border-color: rgba(96, 165, 250, 0.4); transform: translateY(-3px); box-shadow: 0 16px 40px rgba(96, 165, 250, 0.1); }
+.step-num {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(96, 165, 250, 0.14);
+  color: var(--accent);
+  font-weight: 700; font-size: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 14px;
+}
+.step h3 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 6px; }
+.step p { color: var(--fg-2); font-size: 13px; line-height: 1.55; margin-bottom: 16px; min-height: 42px; }
+.step p a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.step .cmd { display: flex; width: 100%; padding: 10px 8px 10px 12px; gap: 8px; border-radius: 10px; }
+.step .cmd-text { font-size: 12.5px; }
+.step .cmd-copy { height: 28px; padding: 0 9px; font-size: 11.5px; }
+.install-foot {
+  text-align: center;
+  margin-top: 30px;
+  font-size: 13px;
+  color: var(--fg-3);
+  line-height: 1.9;
+}
+
+/* Highlight the visitor's own platform card (set by script.js) */
+.plat.is-you { border-color: rgba(96, 165, 250, 0.5); box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.22); }
+
+/* ─── install one-liners (OS-specific curl/irm) ────────────────────────── */
+.oneliners { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 940px; margin: 0 auto; }
+@media (max-width: 760px) { .oneliners { grid-template-columns: 1fr; } }
+.oneliner {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  display: flex; flex-direction: column; gap: 14px;
+  transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+}
+.oneliner:hover { border-color: rgba(96, 165, 250, 0.4); transform: translateY(-3px); box-shadow: 0 16px 40px rgba(96, 165, 250, 0.1); }
+.oneliner-os {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; color: var(--fg-2);
+  letter-spacing: -0.01em;
+}
+.oneliner-os svg { display: block; flex-shrink: 0; }
+.oneliner .cmd { display: flex; width: 100%; padding: 11px 8px 11px 13px; gap: 8px; border-radius: 10px; }
+.oneliner .cmd-text { font-size: 12.5px; }
+.oneliner .cmd-copy { height: 28px; padding: 0 9px; font-size: 11.5px; }

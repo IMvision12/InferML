@@ -1,4 +1,4 @@
-"""Hugging Face routes — HTTP equivalents of the old `hf:*` IPC channels."""
+"""Hugging Face routes - HTTP equivalents of the old `hf:*` IPC channels."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Body, Query

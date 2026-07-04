@@ -1,8 +1,8 @@
-"""image-to-text — variants: unconditioned captioning, VQA.
+"""image-to-text - variants: unconditioned captioning, VQA.
 
 Newer `transformers` merged `image-to-text` into `image-text-to-text` and the
 new pipeline requires a non-empty text argument. BLIP/GIT captioners are built
-to generate from image alone — so when no text is given, we bypass the
+to generate from image alone - so when no text is given, we bypass the
 pipeline and call `model.generate()` directly through the processor."""
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ import output_kinds as ok
 class UnconditionedCaptionVariant(TaskVariant):
     """No text input → call the underlying model directly.
 
-    Works for BLIP, GIT, Pix2Struct, ViT-GPT2 — any encoder-decoder captioner."""
+    Works for BLIP, GIT, Pix2Struct, ViT-GPT2 - any encoder-decoder captioner."""
     name = "unconditioned-caption"
 
     def can_handle(self, info, inputs):
@@ -62,7 +62,7 @@ class VQAVariant(TaskVariant):
     def run(self, state, inputs, params):
         img = decode_image(inputs["dataUrl"])
         text = (inputs.get("text") or "").strip()
-        # Only pass sampling kwargs when do_sample is on — otherwise HF warns
+        # Only pass sampling kwargs when do_sample is on - otherwise HF warns
         # about "temperature has no effect when do_sample=False" in the logs.
         kwargs = {"max_new_tokens": int(params.get("max_new_tokens", 256)),
                   "do_sample": bool(params.get("do_sample", False))}
@@ -97,6 +97,6 @@ class ImageToTextTask(TaskHandler):
 
 
 class ImageTextToTextTask(ImageToTextTask):
-    """The same machinery — this is just the renamed task so routing works
+    """The same machinery - this is just the renamed task so routing works
     for models tagged either way on HF."""
     name = "image-text-to-text"

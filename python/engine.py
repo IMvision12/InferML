@@ -1,4 +1,4 @@
-"""LocalML inference engine — the reusable core.
+"""LocalML inference engine - the reusable core.
 
 Extracted verbatim from the logic that used to live inside `runner.py` so it can
 be driven two ways with identical behavior:
@@ -84,7 +84,7 @@ class Engine:
         generator so the OpenAI endpoint can find it.
         """
         if not model_id:
-            raise ValueError("Missing 'modelId' — the session isn't bound to a model")
+            raise ValueError("Missing 'modelId' - the session isn't bound to a model")
 
         inputs = inputs or {}
 
@@ -294,9 +294,9 @@ def actionable_error(e: Exception) -> str:
     msg = str(e)
     lower = msg.lower()
     if "out of memory" in lower or "cuda out of memory" in lower:
-        return "Out of memory — try a smaller model or switch to CPU (disable CUDA) in settings."
+        return "Out of memory - try a smaller model or switch to CPU (disable CUDA) in settings."
     if "cve-2025-32434" in lower or ("torch" in lower and "v2.6" in msg):
-        return ("Your torch version is too old — transformers requires torch ≥ 2.6 to load this model's weights. "
+        return ("Your torch version is too old - transformers requires torch ≥ 2.6 to load this model's weights. "
                 "Reinstall LocalML's inference extra with a torch ≥ 2.6 wheel.")
     if "not a valid" in lower and "trust_remote_code" in lower:
         return ("This model requires `trust_remote_code=True`. Add an entry for it in "
@@ -311,7 +311,7 @@ def actionable_error(e: Exception) -> str:
         or "you need to be logged in" in lower
     )
     if is_gated:
-        return ("This model is gated or private — it requires a Hugging Face access token. "
+        return ("This model is gated or private - it requires a Hugging Face access token. "
                 "Open Settings → HF Token, paste a token from "
                 "https://huggingface.co/settings/tokens (Read access is enough), then retry.")
     if "no module named" in lower:

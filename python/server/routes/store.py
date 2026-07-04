@@ -1,4 +1,4 @@
-"""Chats + settings routes — HTTP equivalents of `chats:*` / `settings:*` IPC."""
+"""Chats + settings routes - HTTP equivalents of `chats:*` / `settings:*` IPC."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Body

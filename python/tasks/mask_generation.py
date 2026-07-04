@@ -1,4 +1,4 @@
-"""mask-generation — SAM family (v1, SAM 2, SAM 2.1, SAM 3).
+"""mask-generation - SAM family (v1, SAM 2, SAM 2.1, SAM 3).
 
 Automatic grid-sampling mode: the pipeline samples a uniform grid of point
 prompts and produces one mask per significant region. SAM itself doesn't
@@ -31,7 +31,7 @@ def _extract_masks(raw):
     """SAM pipelines return either a dict `{masks, scores}` or a list with
     one dict per image. Normalize to (masks, scores).
 
-    CANNOT use `x or []` here — when the pipeline hands back a torch.Tensor
+    CANNOT use `x or []` here - when the pipeline hands back a torch.Tensor
     the truthiness check raises "Boolean value of Tensor with more than one
     value is ambiguous". Explicit None check instead."""
     def _pair(d):
@@ -48,7 +48,7 @@ def _extract_masks(raw):
 
 
 class AutoMaskGenVariant(TaskVariant):
-    """Grid sampling — default for SAM v1/2/2.1/3 when the user just gives an
+    """Grid sampling - default for SAM v1/2/2.1/3 when the user just gives an
     image with no point/box prompts."""
     name = "auto-mask-generation"
 
@@ -69,18 +69,18 @@ class AutoMaskGenVariant(TaskVariant):
         if state.pipe is None:
             # MaskGenerationPipeline didn't support this model type, so we
             # loaded the raw model/processor instead. Auto-grid needs the
-            # pipeline's grid sampler — direct a user to point-prompt mode,
+            # pipeline's grid sampler - direct a user to point-prompt mode,
             # which works on model+processor directly.
             raise ValueError(
                 f"Auto-grid mask generation isn't available for this SAM variant "
                 f"(model_type={info_model_type(state)!r}) in the installed transformers version. "
-                f"Click the image to add point prompts and run again — point-prompt mode is supported."
+                f"Click the image to add point prompts and run again - point-prompt mode is supported."
             )
 
         raw = state.pipe(img, points_per_batch=ppb)
         masks_list, scores_list = _extract_masks(raw)
 
-        # Largest masks first — small ones draw on top so they stay visible.
+        # Largest masks first - small ones draw on top so they stay visible.
         items = []
         for i, m in enumerate(masks_list):
             arr = np.asarray(m, dtype=bool)
@@ -122,7 +122,7 @@ class AutoMaskGenVariant(TaskVariant):
 
 
 class PointPromptVariant(TaskVariant):
-    """User-supplied point prompts — clicks on the image to indicate objects.
+    """User-supplied point prompts - clicks on the image to indicate objects.
 
     `inputs.points` is a list of {x, y, label} with x,y in [0,1] (normalized
     to the image) and label=1 (include/foreground) or 0 (exclude/background).
@@ -132,14 +132,14 @@ class PointPromptVariant(TaskVariant):
 
     Confirmed compatible: SAM v1 (`sam`), SAM 2 / 2.1 (`sam2`, `sam2_video`
     single-image mode), SAM 3 base (`sam3`). Not supported here: text-prompted
-    (`sam3_lite_text`) or video/tracker (`*_video`, `sam3_tracker`) — they
+    (`sam3_lite_text`) or video/tracker (`*_video`, `sam3_tracker`) - they
     expect a different input modality than a point list."""
     name = "point-prompt"
 
     _INCOMPATIBLE_MODEL_TYPES = {
-        # Text-prompted SAM 3 — needs `input_text`, not point coords.
+        # Text-prompted SAM 3 - needs `input_text`, not point coords.
         "sam3_lite_text",
-        # Video / tracker variants — single-image point prompts don't apply.
+        # Video / tracker variants - single-image point prompts don't apply.
         "sam3_tracker",
     }
 
@@ -181,7 +181,7 @@ class PointPromptVariant(TaskVariant):
                     f"(model_type={info_model_type(state)!r}): {e}"
                 )
 
-        # Points: [{x, y, label}] — x,y in [0,1], label 1=include, 0=exclude.
+        # Points: [{x, y, label}] - x,y in [0,1], label 1=include, 0=exclude.
         raw_pts = inputs["points"]
         coords = [[int(p.get("x", 0.0) * W), int(p.get("y", 0.0) * H)] for p in raw_pts]
         labels = [int(p.get("label", 1)) for p in raw_pts]
@@ -213,19 +213,19 @@ class PointPromptVariant(TaskVariant):
         if not hasattr(outputs, "pred_masks"):
             raise ValueError(
                 f"SAM output missing `pred_masks` (model_type={info_model_type(state)!r}). "
-                "This variant may expect a different prompt shape — open an issue with the repo id."
+                "This variant may expect a different prompt shape - open an issue with the repo id."
             )
         post_process = (getattr(getattr(processor, "image_processor", None), "post_process_masks", None)
                         or getattr(processor, "post_process_masks", None))
         if post_process is None:
-            raise ValueError("SAM processor exposes no post_process_masks — cannot rescale to original size")
+            raise ValueError("SAM processor exposes no post_process_masks - cannot rescale to original size")
 
         # Some newer processors renamed `reshaped_input_sizes` → `reshaped_sizes`.
         reshaped = proc_inputs.get("reshaped_input_sizes")
         if reshaped is None:
             reshaped = proc_inputs.get("reshaped_sizes")
         if reshaped is None:
-            raise ValueError("SAM processor didn't return reshaped input sizes — can't post-process masks")
+            raise ValueError("SAM processor didn't return reshaped input sizes - can't post-process masks")
 
         masks_by_batch = post_process(
             outputs.pred_masks.cpu(),
@@ -244,7 +244,7 @@ class PointPromptVariant(TaskVariant):
         total = max(1, W * H)
 
         for i in range(per_point_masks.shape[0]):
-            # SAM returns 3 masks ranked by IoU — pick the highest-scoring one.
+            # SAM returns 3 masks ranked by IoU - pick the highest-scoring one.
             best_j = int(torch.argmax(per_point_scores[i]).item())
             mask_tensor = per_point_masks[i, best_j]
             arr = mask_tensor.numpy().astype(bool) if hasattr(mask_tensor, "numpy") else np.asarray(mask_tensor).astype(bool)
@@ -271,7 +271,7 @@ class PointPromptVariant(TaskVariant):
 
 
 class MaskGenerationTask(TaskHandler):
-    """SAM family — automatic grid-sampling mask generation by default, or
+    """SAM family - automatic grid-sampling mask generation by default, or
     point-prompted when the caller supplies `inputs.points`."""
     name = "mask-generation"
     output_kind = "masks"
@@ -287,9 +287,9 @@ class MaskGenerationTask(TaskHandler):
 
     def load_pipeline(self, info, device, extra_kwargs=None):
         """Try the standard pipeline() path first (works for SAM v1 and, in
-        recent transformers, SAM 2). If that fails — usually because the
+        recent transformers, SAM 2). If that fails - usually because the
         installed transformers' AutoModelForMaskGeneration mapping doesn't
-        cover the model_type (common for bleeding-edge SAM 3 checkpoints) —
+        cover the model_type (common for bleeding-edge SAM 3 checkpoints) -
         fall back to AutoModel + AutoProcessor. The point-prompt variant
         works on model+processor directly and is unaffected."""
         from transformers import pipeline as hf_pipeline
@@ -326,7 +326,7 @@ class MaskGenerationTask(TaskHandler):
                 raise RuntimeError(
                     f"Couldn't load {info.get('model_id')!r}: {pipe_err}. "
                     f"AutoModelForMaskGeneration also unavailable ({ie}). "
-                    f"This transformers version may not support this SAM variant — upgrade transformers."
+                    f"This transformers version may not support this SAM variant - upgrade transformers."
                 )
             model = AutoModelForMaskGeneration.from_pretrained(info["model_id"], **kwargs)
             processor = AutoProcessor.from_pretrained(info["model_id"], **kwargs)

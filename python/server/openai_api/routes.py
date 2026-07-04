@@ -147,7 +147,7 @@ async def _stream_response(eng, model_req, messages, tools, tool_choice, params)
             return
 
         # Tool calls can't be reliably streamed as native deltas across families
-        # — buffer the generation, parse, and emit a single tool_calls delta.
+        # - buffer the generation, parse, and emit a single tool_calls delta.
         if tools:
             try:
                 text, _p, ctoks = await deps.run_blocking(

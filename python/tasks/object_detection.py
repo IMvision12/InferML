@@ -1,4 +1,4 @@
-"""object-detection — variants: standard-pipeline, zero-shot."""
+"""object-detection - variants: standard-pipeline, zero-shot."""
 from __future__ import annotations
 
 from .base import TaskHandler, TaskVariant, LoadedPipeline
@@ -64,7 +64,7 @@ class StandardDetectionVariant(TaskVariant):
         pruned = _nms(pruned, iou)
         boxes = _normalize_boxes(W, H, pruned)
 
-        # Draw the finished annotated image server-side — UI just displays it.
+        # Draw the finished annotated image server-side - UI just displays it.
         annotated = draw_boxes(img, boxes, accent=ACCENT_DETECT)
         result = ok.boxes(boxes)
         result["annotated"] = encode_png_data_url(annotated)
@@ -79,7 +79,7 @@ class ObjectDetectionTask(TaskHandler):
 
 
 class ZeroShotDetectionVariant(TaskVariant):
-    """OWL-ViT, OWLv2, Grounding-DINO — takes candidate_labels (text prompts)."""
+    """OWL-ViT, OWLv2, Grounding-DINO - takes candidate_labels (text prompts)."""
     name = "zero-shot-detection"
 
     def can_handle(self, info, inputs):

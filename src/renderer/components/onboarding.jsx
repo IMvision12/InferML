@@ -4,7 +4,7 @@ function Onboarding({ open, onDone, pyStatus = {}, pySetup, refreshPyStatus, run
   const [hw, setHw] = useStateOB(null);
   const [showLog, setShowLog] = useStateOB(false);
   const [copied, setCopied] = useStateOB(false);
-  // Accelerator: 'cpu' | 'gpu' | null. Null means "not chosen yet" — we won't
+  // Accelerator: 'cpu' | 'gpu' | null. Null means "not chosen yet" - we won't
   // auto-kick setup until the user picks (or accepts the suggestion).
   const [accelerator, setAccelerator] = useStateOB(null);
   const logRef = useRefOB(null);
@@ -38,7 +38,7 @@ function Onboarding({ open, onDone, pyStatus = {}, pySetup, refreshPyStatus, run
 
   // macOS uses the same default PyPI torch wheel for both CPU and Apple
   // Silicon GPU (MPS support is built into the wheel). The CPU/GPU picker
-  // is meaningless there — auto-start with 'gpu' so MPS gets used at runtime
+  // is meaningless there - auto-start with 'gpu' so MPS gets used at runtime
   // and the user lands directly in the install progress.
   useEffectOB(() => {
     if (!open) return;
@@ -220,7 +220,7 @@ function Onboarding({ open, onDone, pyStatus = {}, pySetup, refreshPyStatus, run
           )}
         </div>
 
-        {/* Accelerator switch — only after install, only on non-Mac (Mac uses
+        {/* Accelerator switch - only after install, only on non-Mac (Mac uses
             the same default PyPI wheel for both CPU and MPS). */}
         {!running && done && pyStatus?.platform !== 'darwin' && pyStatus?.installedAccelerator && (
           <div className="py-card idle">

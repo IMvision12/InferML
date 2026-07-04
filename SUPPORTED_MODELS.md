@@ -22,7 +22,7 @@ Only the family name is listed below. Every public variant of a family that ship
 - D-FINE
 - Table Transformer
 
-> Not supported: Ultralytics YOLO (v5–v12), RF-DETR, detectron2-based models, mmdetection. They use different runtimes that LocalML doesn't ship.
+> Not supported: Ultralytics YOLO (v5-v12), RF-DETR, detectron2-based models, mmdetection. They use different runtimes that LocalML doesn't ship.
 
 ## Zero-Shot Object Detection
 
@@ -286,7 +286,7 @@ These runtimes / formats won't show up in the Hub because the sidecar can't load
 
 | Category | Tags / libraries hit | Why |
 |---|---|---|
-| YOLO family | `ultralytics`, `yolov5`–`yolov12`, `yolo11`, `yolo12`, `yoloe`, `yolox` | Ultralytics runtime, not transformers |
+| YOLO family | `ultralytics`, `yolov5`-`yolov12`, `yolo11`, `yolo12`, `yoloe`, `yolox` | Ultralytics runtime, not transformers |
 | Other detection stacks | `rfdetr`, `rf-detr`, `detectron2`, `mmdetection`, `mmcv`, `mmpose`, `mmsegmentation` | Custom runtimes |
 | Paddle stack | `paddleocr`, `paddledetection`, `paddlenlp`, `paddlepaddle` | PaddlePaddle runtime |
 | Other ML frameworks | `keras`, `spacy`, `flair`, `fastai`, `stable-baselines3` | Different ecosystems |

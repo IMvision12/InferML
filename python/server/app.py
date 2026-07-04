@@ -1,7 +1,7 @@
 """FastAPI application factory.
 
 Phase 1: serve the compiled React build as static files at the root, plus a
-health probe. API and OpenAI-compatible routers mount here in later phases —
+health probe. API and OpenAI-compatible routers mount here in later phases -
 they must be registered BEFORE the catch-all static mount so `/api/*` and
 `/v1/*` win over the greedy `"/"` mount.
 """
@@ -67,7 +67,7 @@ def create_app() -> FastAPI:
                 content={
                     "ok": False,
                     "error": (
-                        "Frontend not built. Run `npm run build:renderer` — "
+                        "Frontend not built. Run `npm run build:renderer` - "
                         f"expected a compiled build at {webui}."
                     ),
                 },

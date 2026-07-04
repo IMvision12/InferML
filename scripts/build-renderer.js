@@ -41,7 +41,7 @@ function rel(p) { return path.relative(ROOT, p).replace(/\\/g, '/'); }
 //   - drop the Babel Standalone <script> tag
 //   - rewrite each <script type="text/babel" src=".../X.jsx"> to
 //                  <script src=".../X.js">
-//   - drop 'unsafe-eval' from the CSP — without Babel-in-browser the
+//   - drop 'unsafe-eval' from the CSP - without Babel-in-browser the
 //     renderer no longer needs eval, which is a real security tightening
 function generateHtml() {
   let html = fs.readFileSync(SRC_HTML, 'utf8');
@@ -60,7 +60,7 @@ function generateHtml() {
 
   // Vendor the browser runtime deps (react, react-dom, marked, dompurify) so
   // the built frontend is self-contained and needs no node_modules at runtime
-  // — required for the Node-free `pipx install localml` web server. Each
+  // - required for the Node-free `pipx install localml` web server. Each
   // `../../node_modules/<pkg>/<path>/<file>` script src is rewritten to
   // `/vendor/<file>`, and the files themselves are copied by copyVendorAssets().
   html = html.replace(
@@ -124,7 +124,7 @@ const baseBuildOpts = {
   jsx: 'transform',
   jsxFactory: 'React.createElement',
   jsxFragment: 'React.Fragment',
-  // Electron 33 ships Chromium 130 — chrome120 is a safe baseline that
+  // Electron 33 ships Chromium 130 - chrome120 is a safe baseline that
   // doesn't downlevel anything we'd actually use.
   target: ['chrome120'],
   // bundle:false keeps the existing classic-script architecture: each .jsx

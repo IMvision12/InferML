@@ -1,4 +1,4 @@
-# LocalML — Electron → Local Web Server Migration Plan
+# LocalML - Electron → Local Web Server Migration Plan
 
 Status: **planning complete, no code written yet.** This document must be
 approved before Phase 1 begins.
@@ -53,7 +53,7 @@ stdout. The core logic is small and clean:
 
 | stdin request | fields | stdout response |
 |---|---|---|
-| `{type:"ping"}` | — | `{type:"pong"}` |
+| `{type:"ping"}` | - | `{type:"pong"}` |
 | `{type:"run"}` | `modelId`, `task`, `input:{kind,text?,dataUrl?,points?}`, `params` | `{type:"result", output:{kind,...}}` or `{type:"error", error, exc_type, trace}` |
 | `{type:"download"}` | `modelId` | streamed `{type:"progress", done,total,pct,final}` then `{type:"result", output:{path,bytes,total_bytes}}` |
 | `{type:"cancelDownload"}` | `targetId` | `{type:"result", output:{cancelled}}` |
@@ -63,11 +63,11 @@ engine (see §2):
 
 - `runner._run(req)` → `inspect_model` → `pick_adapter` → `adapter.load` →
   `adapter.run(inputs, params)`. Adapter instances cached in
-  `_ADAPTER_CACHE` keyed by `(adapter_class, model_id)` — **one model = one
+  `_ADAPTER_CACHE` keyed by `(adapter_class, model_id)` - **one model = one
   loaded pipeline**, exactly the handle the OpenAI endpoint needs.
 - `runner._download(req, cancel_event)` → `snapshot_download` with per-format
   filtering + byte-progress via a custom tqdm.
-- `routing.pick_adapter` / `inspect_model` / `override_for` — unchanged.
+- `routing.pick_adapter` / `inspect_model` / `override_for` - unchanged.
 - `output_kinds.py` canonical shapes: `text | image | audio | boxes | masks |
   labels | vector`.
 
@@ -75,12 +75,12 @@ LLM text generation path (relevant to Phase 3/4):
 `models/{qwen,llama,gemma,mistral}/` → `make_pipeline_adapter("text-generation")`
 → `tasks/text_generation.py`. The loaded `LoadedPipeline.pipe` is a transformers
 `pipeline`, so `state.pipe.model` and `state.pipe.tokenizer` are directly
-reachable — that is what `/v1/chat/completions` will drive (streamer + chat
+reachable - that is what `/v1/chat/completions` will drive (streamer + chat
 template + `model.generate`).
 
 ### 1b. The frontend IPC surface (`window.localml.*`)
 
-Enumerated from the renderer (only these are actually consumed — `chat.send`
+Enumerated from the renderer (only these are actually consumed - `chat.send`
 cloud-provider streaming and `keys.*` are exposed by preload but **unused** by
 the current components, so they are out of scope):
 
@@ -117,7 +117,7 @@ The inference request shape the renderer sends (from `task-workspace.jsx` and
            └── /v1/*         → OpenAI-compatible (chat/completions, models)
                          │  in-process function call (no subprocess)
                          ▼
-        Inference engine  (python/engine.py — extracted from runner.py)
+        Inference engine  (python/engine.py - extracted from runner.py)
            routing.py · adapters/ · models/ · tasks/   ← REUSED UNCHANGED
 ```
 
@@ -125,7 +125,7 @@ The inference request shape the renderer sends (from `task-workspace.jsx` and
 
 1. **In-process engine, not a subprocess.** The server imports the inference
    engine directly. Rationale: (a) the OpenAI endpoint needs a live handle to
-   the currently-loaded LLM adapter/tokenizer — trivial in-process, awkward over
+   the currently-loaded LLM adapter/tokenizer - trivial in-process, awkward over
    stdio; (b) SSE token streaming wants the `TextIteratorStreamer` in the same
    process; (c) native GPU/MPS is preserved because uvicorn runs Python
    natively. `runner.py` stays as a thin CLI shim over the same engine for
@@ -141,7 +141,7 @@ The inference request shape the renderer sends (from `task-workspace.jsx` and
    `src/renderer/web-bridge.js` defines `window.localml` with the same shape,
    backed by `fetch` + `EventSource`. It is loaded by `index.html` *before* the
    component scripts, replacing the Electron `preload.js`. This satisfies the
-   "leave UI and components unchanged" constraint — not one `.jsx` is edited for
+   "leave UI and components unchanged" constraint - not one `.jsx` is edited for
    Phase 2 behavior.
 
 4. **Electron-only services get Python equivalents** (hf search, storage, hw,
@@ -150,7 +150,7 @@ The inference request shape the renderer sends (from `task-workspace.jsx` and
 
 5. **App-data location** via `platformdirs` (`localml`): chats/, settings.json,
    installs.json, hf-token.json, logs/. `HF_HOME` defaults to the standard HF
-   cache unless the user sets it — no more bespoke `userData/hf-cache`.
+   cache unless the user sets it - no more bespoke `userData/hf-cache`.
 
 ### New files
 
@@ -189,7 +189,7 @@ src/renderer/
 
 ---
 
-## 3. Phase 1 — FastAPI server that serves the frontend
+## 3. Phase 1 - FastAPI server that serves the frontend
 
 **Deliverables**
 - `python/server/app.py`: FastAPI app. Mounts `StaticFiles` at `/` pointing at
@@ -207,11 +207,11 @@ src/renderer/
 
 **Verification**: `localml` starts; browser at `:11500` loads the LocalML shell
 (titlebar, sidebar, hub) with no console errors for static assets. (Inference
-still 404s until Phase 2 — expected.)
+still 404s until Phase 2 - expected.)
 
 ---
 
-## 4. Phase 2 — port the sidecar contract to HTTP
+## 4. Phase 2 - port the sidecar contract to HTTP
 
 **4a. Extract the engine (`python/engine.py`)**
 Move `_ADAPTER_CACHE`, `_get_adapter`, `_run`, `_download` (+ the weight-format
@@ -219,11 +219,11 @@ picker and `_actionable_error`) out of `runner.py` into `engine.py` as a small
 class `Engine` with:
 - `run(model_id, task, inputs, params) -> dict` (returns an `output_kinds` dict)
 - `download(model_id, on_progress, cancel_event) -> dict`
-- `current_llm()` / `loaded_models()` — exposes the cached text-generation
+- `current_llm()` / `loaded_models()` - exposes the cached text-generation
   adapter(s) for Phase 3.
 - `unload(model_id=None)`.
 `runner.py` becomes a thin NDJSON shim that calls `Engine`. **No adapter, model,
-or task code changes** — this is pure extraction (constraint: wrap, don't
+or task code changes** - this is pure extraction (constraint: wrap, don't
 rewrite).
 
 **4b. Inference routes (`routes/inference.py`)**
@@ -233,7 +233,7 @@ rewrite).
 | `POST /api/download` | `tasks:download` | body `{modelId}` → **SSE** stream of `{done,total,pct,final}`, terminal `{ok,info}` |
 | `POST /api/download/cancel` | `tasks:cancelDownload` | `{modelId}` |
 | `POST /api/stop` | `tasks:stop` | cancels in-flight run |
-| `GET /api/status` | `tasks:status`/`statusSync` | `{ready:true, runtimeInstalled:true, ...}` — in the pipx model the server *is* the runtime, so this is a lightweight torch/accel probe, and `setup` is a no-op returning ready. Onboarding auto-advances. |
+| `GET /api/status` | `tasks:status`/`statusSync` | `{ready:true, runtimeInstalled:true, ...}` - in the pipx model the server *is* the runtime, so this is a lightweight torch/accel probe, and `setup` is a no-op returning ready. Onboarding auto-advances. |
 
 Inference runs under the shared lock in a threadpool. Download progress uses an
 `asyncio.Queue` fed by the engine's `on_progress` callback and drained as SSE.
@@ -250,7 +250,7 @@ Inference runs under the shared lock in a threadpool. Download progress uses an
   `nvidia-smi`/`torch.cuda`/`torch.backends.mps` for GPU. `/api/hw`.
 - HF token ← `services/hf-auth.js`: `/api/hf/token` get/set/clear/verify; set
   updates the process env (`HF_TOKEN`) so the in-process engine picks it up on
-  the next load — no process restart needed (an advantage of in-process).
+  the next load - no process restart needed (an advantage of in-process).
 - logs: in-memory ring + append file; `/api/logs`.
 
 **4d. The web bridge (`src/renderer/web-bridge.js`)**
@@ -264,7 +264,7 @@ Reimplements the full `window.localml.*` surface (§1b) over HTTP:
   (server-sent broadcast) so live hardware polling and cross-tab install updates
   keep working.
 - `dialog.openImage/openAudio` → programmatic `<input type=file>` in the browser
-  that reads the file to a data URL and returns `{kind,dataUrl,name}` — the
+  that reads the file to a data URL and returns `{kind,dataUrl,name}` - the
   exact shape components expect. No component edit needed.
 - `window.*`, `updates.*`, `app.openExternal` → browser-appropriate stubs
   (`window.close`→ no-op/hide titlebar controls, `openExternal`→`window.open`).
@@ -273,12 +273,12 @@ Reimplements the full `window.localml.*` surface (§1b) over HTTP:
 
 **Verification (Phase 1+2)**: fresh `localml`, UI loads in a browser; download a
 model from the Hub with a live progress bar; run **one model of each major
-type** end-to-end — LLM (Qwen/Llama text-gen), VLM (image-text-to-text),
-diffusion (text-to-image), ASR (Whisper) — outputs render in the workspace.
+type** end-to-end - LLM (Qwen/Llama text-gen), VLM (image-text-to-text),
+diffusion (text-to-image), ASR (Whisper) - outputs render in the workspace.
 
 ---
 
-## 5. Phase 3 — OpenAI-compatible endpoint
+## 5. Phase 3 - OpenAI-compatible endpoint
 
 **`POST /v1/chat/completions`** (`openai/routes.py` + `adapt.py`)
 - Accept the standard body: `model, messages[], temperature, top_p, max_tokens,
@@ -288,7 +288,7 @@ diffusion (text-to-image), ASR (Whisper) — outputs render in the workspace.
   `engine.current_llm()`. If no LLM is loaded and none named → `400` with a
   clear "load a text-generation model in LocalML first" message.
 - Build the prompt with `tokenizer.apply_chat_template(messages,
-  add_generation_prompt=True)` (full multi-turn — an improvement over the
+  add_generation_prompt=True)` (full multi-turn - an improvement over the
   current single-user-message path, reusing the same tokenizer).
 - Non-stream: `model.generate` in the executor under the lock; map to the
   OpenAI response object (`id, object:"chat.completion", choices[0].message,
@@ -306,9 +306,9 @@ streamed call both return valid content.
 
 ---
 
-## 6. Phase 4 — tool calling (flagged as model-specific complexity)
+## 6. Phase 4 - tool calling (flagged as model-specific complexity)
 
-Tool calling is **not uniform across model families** — this is the genuinely
+Tool calling is **not uniform across model families** - this is the genuinely
 hard phase and is built explicitly, never faked.
 
 - Request: accept `tools` (+ `tool_choice`). Apply the chat template *with tools*
@@ -316,11 +316,11 @@ hard phase and is built explicitly, never faked.
   which injects each family's native tool preamble.
 - Parse generated text back into structured `tool_calls[]` via a **parser layer
   keyed on model family**, not one regex:
-  - `hermes_qwen.py` — `<tool_call>{"name":…,"arguments":…}</tool_call>` (Qwen2.5/3,
-    Hermes). Start here — Qwen is among LocalML's most-loaded families.
-  - `llama.py` — Llama 3.1/3.2: `<|python_tag|>`-prefixed or bare JSON
+  - `hermes_qwen.py` - `<tool_call>{"name":…,"arguments":…}</tool_call>` (Qwen2.5/3,
+    Hermes). Start here - Qwen is among LocalML's most-loaded families.
+  - `llama.py` - Llama 3.1/3.2: `<|python_tag|>`-prefixed or bare JSON
     `{"name":…,"parameters":…}`.
-  - `mistral.py` — `[TOOL_CALLS] [ {…} ]`.
+  - `mistral.py` - `[TOOL_CALLS] [ {…} ]`.
 - Family detection from `config.model_type` / tokenizer name → dispatch in
   `tools/__init__.py`.
 - Response: emit `choices[0].message.tool_calls[]` with
@@ -330,19 +330,19 @@ hard phase and is built explicitly, never faked.
   (constraint).
 
 **Verification**: an agent (LangChain tool-calling or raw OpenAI SDK) completes a
-full round trip — model emits a tool call, we parse it, the caller runs the tool
-and posts the result, the model produces a final answer — against a Qwen model.
+full round trip - model emits a tool call, we parse it, the caller runs the tool
+and posts the result, the model produces a final answer - against a Qwen model.
 
 ---
 
-## 7. Phase 5 — distribution
+## 7. Phase 5 - distribution
 
 - `pyproject.toml`: package `localml`; `console_scripts` `localml =
   localml.server.cli:main`; deps = current `requirements.txt` + `fastapi`,
   `uvicorn[standard]`, `psutil`, `platformdirs`, `huggingface_hub`. torch stays
   an install-time concern: document `pipx install localml` for CPU and an extra
   index (`--pip-args='--index-url …cu124'`) or an optional extra for GPU, mirroring
-  today's accelerator logic. **Model coverage is unchanged — same transformers/
+  today's accelerator logic. **Model coverage is unchanged - same transformers/
   diffusers/timm stack, all 143 families intact.**
 - **Bundle the built frontend inside the package**: `build:renderer` output is
   included as package data (e.g. `python/localml/webui/`) so a fresh install
@@ -405,4 +405,4 @@ and posts the result, the model produces a final answer — against a Qwen model
 
 Phase by phase, verifying before moving on. After each phase: a short summary of
 what changed and what was verified. No git operations are performed by the
-assistant — the user runs all commits/pushes.
+assistant - the user runs all commits/pushes.

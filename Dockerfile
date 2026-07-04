@@ -1,4 +1,4 @@
-# LocalML — local web server with an OpenAI-compatible API.
+# LocalML - local web server with an OpenAI-compatible API.
 #
 # Two stages: build the self-contained frontend with Node, then install the
 # Python package (server + inference extra) into a slim runtime image. No

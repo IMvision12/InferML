@@ -2,7 +2,7 @@
 flag, and an in-memory log ring.
 
 The engine is single-threaded against itself (torch), so all blocking inference
-runs in a threadpool behind one asyncio.Lock — preserving the old sidecar's
+runs in a threadpool behind one asyncio.Lock - preserving the old sidecar's
 one-request-at-a-time semantics while keeping the event loop responsive for
 progress streaming and health checks.
 """

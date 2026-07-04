@@ -1,7 +1,7 @@
 """Canonical output shapes.
 
 Every adapter returns a dict matching one of these shapes. Downstream UI code
-only ever sees these kinds — adapters below the boundary can be as weird as
+only ever sees these kinds - adapters below the boundary can be as weird as
 they need to be.
 """
 from __future__ import annotations

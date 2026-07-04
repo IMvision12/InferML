@@ -1,4 +1,4 @@
-"""automatic-speech-recognition — one variant that decides chunking from
+"""automatic-speech-recognition - one variant that decides chunking from
 actual audio duration and renders inline timestamps when requested."""
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import output_kinds as ok
 
 def _format_timestamp(t):
     """Convert a Whisper timestamp (float seconds) to mm:ss.d. Some chunks
-    report (start, None) for the last chunk — render `?` in that case."""
+    report (start, None) for the last chunk - render `?` in that case."""
     if t is None:
         return "?"
     mins = int(t) // 60
@@ -21,7 +21,7 @@ class ASRVariant(TaskVariant):
     """Single variant: decode audio, compute duration, pass through the user's
     chunking / timestamp params. Earlier versions had separate short/long
     variants keyed on an `inputs.duration_seconds` field that the JS side
-    never actually sent — LongAudioVariant was dead code and the user's
+    never actually sent - LongAudioVariant was dead code and the user's
     chunk / timestamp params were silently ignored."""
     name = "standard"
 
@@ -34,7 +34,7 @@ class ASRVariant(TaskVariant):
         want_timestamps = bool(params.get("return_timestamps", False))
         # Whisper-only: "transcribe" (default) preserves source language;
         # "translate" forces English output regardless of source. Other ASR
-        # families (Wav2Vec2, Parakeet, etc.) ignore this — we only attach
+        # families (Wav2Vec2, Parakeet, etc.) ignore this - we only attach
         # the generate kwarg when the model id looks like Whisper.
         whisper_mode = (params.get("whisper_mode") or "transcribe").strip().lower()
         is_whisper = "whisper" in (state.info.get("model_id") or "").lower()

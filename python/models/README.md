@@ -98,7 +98,7 @@ REPO_PATTERNS = ["black-forest-labs/flux*", "*/flux*"]
 ADAPTER = FluxAdapter
 ```
 
-User-supplied params still win on conflict — these are just defaults.
+User-supplied params still win on conflict - these are just defaults.
 
 ## Adding a new family
 

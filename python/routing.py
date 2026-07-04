@@ -114,7 +114,7 @@ def plugin_adapters() -> list[type]:
 def inspect_model(model_id: str) -> dict:
     """Gather enough metadata to route the model without downloading weights.
 
-    Network calls are best-effort — if we're offline or the model is gated, we
+    Network calls are best-effort - if we're offline or the model is gated, we
     return what we can and let the adapter raise a clearer error during load.
     """
     info = {

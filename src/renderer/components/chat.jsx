@@ -365,7 +365,7 @@ function Message({ m }) {
   );
 }
 
-// Markdown renderer for assistant messages — gives ChatGPT/Claude/Qwen-style
+// Markdown renderer for assistant messages - gives ChatGPT/Claude/Qwen-style
 // formatting (headings, lists, bold/italic, inline + fenced code, tables,
 // blockquotes, links). Uses `marked` for parsing and `DOMPurify` to scrub
 // any HTML the model might emit (LLMs occasionally produce raw <script>
@@ -373,7 +373,7 @@ function Message({ m }) {
 //
 // Streaming-safe: re-rendering on every token is cheap because marked is
 // fast and the AST is throwaway. Incomplete code fences mid-stream render
-// as plain code blocks until the closing ``` arrives — same behaviour
+// as plain code blocks until the closing ``` arrives - same behaviour
 // every other LLM client has.
 const _markedConfigured = (() => {
   if (typeof window === 'undefined' || !window.marked) return false;
@@ -386,7 +386,7 @@ const _markedConfigured = (() => {
 
   // Force every emitted <a> through shell.openExternal. Without this, an
   // LLM-supplied bare `[link](https://attacker)` clicked by the user would
-  // navigate the renderer away from index.html — and the preload script
+  // navigate the renderer away from index.html - and the preload script
   // stays attached, so the attacker page could call window.localml.* IPC.
   // Belt-and-braces: the main process also blocks `will-navigate`.
   if (window.DOMPurify && typeof window.DOMPurify.addHook === 'function') {
@@ -414,7 +414,7 @@ function MarkdownText({ text, className }) {
     } catch { return null; }
   }, [text]);
 
-  // Fallback to plain pre-formatted text if either lib failed to load — we
+  // Fallback to plain pre-formatted text if either lib failed to load - we
   // never want a missing dep to take the chat view down.
   if (html === null) {
     return <div className={className} style={{whiteSpace:'pre-wrap'}}>{text}</div>;

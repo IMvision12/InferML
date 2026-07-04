@@ -1,7 +1,7 @@
 # LocalML
 
 Any Hugging Face model. Local. Multi-modal. Now a **local web server** with an
-**OpenAI-compatible API** — no Electron, no native binary.
+**OpenAI-compatible API** - no Electron, no native binary.
 
 Run 143+ model families fully on-device (LLMs, VLMs, diffusion, ASR, TTS,
 segmentation, detection) behind a browser UI, and point agent frameworks
@@ -9,13 +9,26 @@ segmentation, detection) behind a browser UI, and point agent frameworks
 
 ## Install
 
+Requires **Python 3.10+** - the installer checks for it but won't install Python
+for you. One line in your terminal:
+
 ```bash
-pipx install localml                 # server only (fast)
-pipx install "localml[inference]"    # + the torch/transformers stack
+# macOS / Linux
+curl -fsSL https://localml.app/install.sh | sh
+# Windows (PowerShell)
+irm https://localml.app/install.ps1 | iex
 ```
 
-For a CUDA build, install the inference extra against the matching PyTorch
-index, e.g. `--pip-args="--index-url https://download.pytorch.org/whl/cu124"`.
+The script bootstraps pipx and installs the LocalML server. On first launch the
+app walks you through installing the inference stack (PyTorch + transformers) for
+your hardware - pick **CPU** or **GPU** and it fetches the matching build.
+
+Prefer to do it by hand?
+
+```bash
+pipx install localml                 # server only; the app installs torch on first run
+pipx install "localml[inference]"    # or grab the whole stack up front (generic torch wheel)
+```
 
 ## Run
 

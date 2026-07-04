@@ -16,7 +16,7 @@ jobs:
   # Drafts are invisible to users, don't trigger electron-updater, and don't
   # get picked up by the website's `/releases/latest` link until we promote
   # them in the publish job. They're also stored in the (free, unlimited)
-  # release-asset pool, NOT the per-account artifact-storage quota — which
+  # release-asset pool, NOT the per-account artifact-storage quota - which
   # is the whole reason this workflow exists in this shape.
   prepare:
     name: Prepare draft release
@@ -81,7 +81,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Append this OS's installers into the draft release. No upload-artifact
-      # anywhere — the files go straight to release storage (unlimited, free)
+      # anywhere - the files go straight to release storage (unlimited, free)
       # and the workflow's per-account artifact quota stays untouched.
       - name: Append to draft release
         uses: softprops/action-gh-release@v2

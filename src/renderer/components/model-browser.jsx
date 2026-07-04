@@ -74,6 +74,29 @@ function _parseSize(s) {
   return n * mul;
 }
 
+// Parse a parameter count like "8B" / "0.6B" / "462M" → number (NaN unknown).
+function _parseParams(s) {
+  if (!s || typeof s !== 'string') return NaN;
+  const m = s.match(/^([\d.]+)\s*([KMB])$/i);
+  if (!m) return NaN;
+  const n = parseFloat(m[1]);
+  return n * ({ K: 1e3, M: 1e6, B: 1e9 }[m[2].toUpperCase()] || 1);
+}
+
+// Bytes estimate used for the oversize filter WITHOUT waiting on async size
+// resolution. Prefer a real size already on the search result; otherwise
+// estimate from the parameter count (~2 bytes/param, fp16). Keeping this
+// independent of the trickle-in modelInfo sizes is what stops the "Suggested"
+// pick from churning as sizes resolve - modelInfo only refines the displayed
+// size, never which model is chosen.
+function _filterBytes(m) {
+  const real = _parseSize(m.size);
+  if (Number.isFinite(real)) return real;
+  const params = _parseParams(m.params);
+  if (Number.isFinite(params)) return params * 2;
+  return NaN;
+}
+
 function _formatLandingDate(d = new Date()) {
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
 }
@@ -102,13 +125,13 @@ const SUPPORTED_TASKS = new Set([
   // diffusers
   'text-to-image',
   'image-to-image',
-  // 'inpainting' is intentionally omitted — the diffusers pipeline requires a
+  // 'inpainting' is intentionally omitted - the diffusers pipeline requires a
   // mask (see python/adapters/diffusers_pipeline.py:55) and we don't ship a
   // mask editor yet. Re-enable once a mask canvas is wired into the composer.
 ]);
 
 // The main-process huggingface service filters results through
-// isNativelySupported() before returning — repos tagged ultralytics / YOLO /
+// isNativelySupported() before returning - repos tagged ultralytics / YOLO /
 // RF-DETR / detectron2 / PaddleOCR / keras / onnx-only never reach the
 // renderer, so the only client-side filter we need is task-based (the "All"
 // tab sends task=null to the server, so we still have to drop models whose
@@ -117,7 +140,7 @@ const SUPPORTED_TASKS = new Set([
 function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, resetSignal = 0 }) {
   const [tab, setTab] = useStateMB('all');
   const [query, setQuery] = useStateMB('');
-  // Debounced copy of `query` — what drives the actual HF search. Prevents
+  // Debounced copy of `query` - what drives the actual HF search. Prevents
   // every keystroke from firing 2 HF API calls.
   const [debouncedQuery, setDebouncedQuery] = useStateMB('');
   const [showInstalled, setShowInstalled] = useStateMB(defaultInstalled);
@@ -198,8 +221,10 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
       const pick = list.find(m => {
         if (!m.id || seen.has(m.id)) return false;
         if (installed[m.id]) return false;
-        const sz = suggestedSizes[m.id] || m.size;
-        const bytes = _parseSize(sz);
+        // Filter on a stable estimate (real search size or param count), NOT the
+        // async-resolved suggestedSizes, so the pick doesn't cascade as sizes
+        // load in.
+        const bytes = _filterBytes(m);
         if (Number.isFinite(bytes) && bytes > SUGGEST_MAX_BYTES) return false;
         return true;
       });
@@ -220,7 +245,7 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
   useEffectMB(() => {
     let cancelled = false;
     (async () => {
-      const needSize = suggestedList.filter(p => !p.size || p.size === '-' || p.size === '—');
+      const needSize = suggestedList.filter(p => !p.size || p.size === '-' || p.size === '-');
       if (needSize.length === 0) return;
       const CONCURRENCY = 3;
       let cursor = 0;
@@ -232,7 +257,7 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
             const info = await window.localml?.hf.modelInfo(m.id);
             if (cancelled || !info?.size) continue;
             setSuggestedSizes(prev => ({ ...prev, [m.id]: info.size }));
-          } catch { /* ignore — leave size as "-" */ }
+          } catch { /* ignore - leave size as "-" */ }
         }
       };
       await Promise.all(Array.from({ length: CONCURRENCY }, worker));
@@ -240,7 +265,7 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
     return () => { cancelled = true; };
   }, [suggestedList]);
 
-  // Debounce search input — no sense firing an HF request for every keystroke
+  // Debounce search input - no sense firing an HF request for every keystroke
   // of a word the user is still typing. 300ms is the common UX default.
   useEffectMB(() => {
     const t = setTimeout(() => setDebouncedQuery(query), 300);
@@ -253,7 +278,7 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
       if (!evt || !evt.modelId) return;
       const { modelId, pct, done, total, final } = evt;
       setDownloads(d => {
-        // Only merge into an entry we already created in startDownload —
+        // Only merge into an entry we already created in startDownload -
         // stray events for dismissed/completed entries are ignored.
         if (!d[modelId]) return d;
         return {
@@ -312,7 +337,7 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
           if (Array.isArray(r)) {
             if (!cancelled) setResults(r);
           } else {
-            // IPC returned {error: ...} — surface the error and keep the
+            // IPC returned {error: ...} - surface the error and keep the
             // previous result set visible so the grid doesn't collapse to
             // "No results." on a transient failure.
             if (!cancelled) setErr(r?.error || 'search failed');
@@ -354,7 +379,7 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
   const hiddenCount = allModels.length - models.length;
 
   // Lazy-fetch sizes for any result missing one (4-way concurrency).
-  // Skip models whose task we don't support — saves HF API calls.
+  // Skip models whose task we don't support - saves HF API calls.
   useEffectMB(() => {
     let cancelled = false;
     (async () => {
@@ -413,7 +438,7 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
     // Remove from UI immediately so the user sees the action take effect.
     setDownloads(d => { const rest = { ...d }; delete rest[id]; return rest; });
     // Then tell the Python sidecar to unwind the in-flight snapshot_download.
-    // Fire-and-forget — the matching startDownload promise will reject with
+    // Fire-and-forget - the matching startDownload promise will reject with
     // "cancelled", and its guarded setDownloads call above is a no-op since
     // the entry is already gone.
     try { await window.localml?.tasks.cancelDownload(id); } catch {}
@@ -561,7 +586,7 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
                               <Icon name="x" size={11}/>
                             </button>
                           ) : (
-                            <><Icon name="download" size={11}/> {m.size || '—'}</>
+                            <><Icon name="download" size={11}/> {m.size || '-'}</>
                           )}
                         </div>
                       </li>
@@ -618,7 +643,7 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
         {/* Persistent downloads tracker. On the landing view, the Suggested
             column already renders an inline progress bar per row, so the
             bottom strip would duplicate every visible download. We only
-            surface it on landing for *orphan* downloads — ones the user
+            surface it on landing for *orphan* downloads - ones the user
             kicked off elsewhere (search results, a different category)
             that aren't in the current Suggested sample, otherwise they'd
             be invisible until the user navigates back. In search view we

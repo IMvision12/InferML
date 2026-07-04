@@ -1,4 +1,4 @@
-"""Shared image annotation — boxes + label collision avoidance + segmentation
+"""Shared image annotation - boxes + label collision avoidance + segmentation
 compositing, all in PIL. Produces the final pixel-accurate PNG that both the
 UI and the download button use, so there's no JS drift."""
 from __future__ import annotations
@@ -31,7 +31,7 @@ def _measure(font, text):
         bbox = font.getbbox(text)
         return bbox[2] - bbox[0], bbox[3] - bbox[1]
     except Exception:
-        # Very old PIL — very rough estimate
+        # Very old PIL - very rough estimate
         return len(text) * (font.size if hasattr(font, "size") else 10) * 0.6, 12
 
 

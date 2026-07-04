@@ -1,114 +1,85 @@
-// Detect OS, set the primary download button label/icon, and fetch the
-// latest GitHub release to point each download CTA at the right installer.
-(function () {
-  // Source repo (IMvision12/localml) is private; releases are mirrored to
-  // this public repo so anonymous users can fetch the API + assets.
-  const REPO = 'IMvision12/localml-app';
-  const RELEASES_LATEST = `https://github.com/${REPO}/releases/latest`;
+// LocalML landing page - interactions.
+//
+// LocalML installs from PyPI (`pipx install localml`) and runs as a local web
+// server, so there are no OS-specific installers to fetch. This script wires up
+// the copy-to-clipboard command blocks, highlights the visitor's own platform
+// card, and runs the ambient scroll / hero effects.
 
+// ── copy-to-clipboard for command + code blocks ──────────────────────────
+(function () {
+  function flash(btn) {
+    btn.classList.add('is-copied');
+    const label = btn.querySelector('.cmd-copy-label');
+    const prev = label ? label.textContent : '';
+    if (label) label.textContent = 'Copied';
+    setTimeout(() => {
+      btn.classList.remove('is-copied');
+      if (label) label.textContent = prev || 'Copy';
+    }, 1600);
+  }
+
+  function fallbackCopy(text, btn) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      flash(btn);
+    } catch { /* clipboard unavailable - nothing we can do */ }
+  }
+
+  function copy(text, btn) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => flash(btn)).catch(() => fallbackCopy(text, btn));
+    } else {
+      fallbackCopy(text, btn);
+    }
+  }
+
+  // Resolve the text to copy: an explicit [data-copy] wins (e.g. commands with
+  // markup), otherwise fall back to the block's rendered command / code text.
+  function textFor(btn) {
+    const holder = btn.closest('[data-copy]');
+    if (holder && holder.getAttribute('data-copy')) return holder.getAttribute('data-copy');
+    const scope = btn.closest('.cmd, .api-code');
+    const src = scope && (scope.querySelector('.cmd-text') || scope.querySelector('.api-pre'));
+    return src ? src.textContent : '';
+  }
+
+  document.querySelectorAll('.cmd-copy').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const text = textFor(btn);
+      if (text) copy(text, btn);
+    });
+  });
+})();
+
+// ── OS detection: highlight the visitor's platform card, and set the hero
+//    install one-liner. The HTML ships the curl/sh line by default; Windows
+//    visitors get the PowerShell `irm … | iex` line instead.
+(function () {
   const ua = (navigator.userAgent || '').toLowerCase();
   const plat = (navigator.platform || '').toLowerCase();
-
   let os = 'windows';
   if (ua.includes('mac') || plat.includes('mac')) os = 'mac';
   else if (ua.includes('linux') || plat.includes('linux')) os = 'linux';
 
-  const labels = {
-    windows: 'Download for Windows',
-    mac: 'Download for macOS',
-    linux: 'Download for Linux',
-  };
-  const icons = {
-    // Windows — four angled tiles, inherit button text color for contrast
-    windows: `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M0 3.449 9.75 2.1v9.451H0"/><path d="M10.949 1.94 23.99 0v11.4H10.949"/><path d="M0 12.6h9.75v9.451L0 20.699"/><path d="M10.949 12.6H24V24l-13.051-1.9"/></svg>`,
-    // Apple logo — inherits currentColor
-    mac: `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.74 1.18 0 2.5-.82 3.83-.7 1.5.12 2.65.72 3.4 1.8-3.09 1.85-2.35 5.92.48 7.07-.56 1.48-1.29 2.96-2.73 4.05h-.06zm-5.11-14.34c-.09-2.5 2.03-4.6 4.36-4.65.24 2.83-2.64 4.79-4.36 4.65"/></svg>`,
-    // Tux — monochrome (inherits currentColor) for cleaner contrast on the button
-    linux: `<svg viewBox="0 0 32 32" width="20" height="20" fill="currentColor"><path d="M16 4c-3.6 0-5.5 2.6-5.5 5.6 0 1.5.5 2.4.5 2.4-1.2 1.2-2.9 2.9-3.4 4.9-.4 1.7.1 3.1.8 4 .6.7 1.5 1 2.1.6.6-.4.5-1.3.5-1.3-.4-2 .9-3.1 1.7-3.8.4-.4.9-.8 1.3-1.4.4.6.9 1 1.3 1.4.8.7 2.1 1.8 1.7 3.8 0 0-.1.9.5 1.3.6.4 1.5.1 2.1-.6.7-.9 1.2-2.3.8-4-.5-2-2.2-3.7-3.4-4.9 0 0 .5-.9.5-2.4C21.5 6.6 19.6 4 16 4z"/></svg>`,
-  };
+  const card = document.getElementById('plat-' + os);
+  if (card) card.classList.add('is-you');
 
-  const text = document.getElementById('cta-text');
-  const iconEl = document.getElementById('cta-icon');
-  if (text) text.textContent = labels[os] || labels.windows;
-  if (iconEl) iconEl.innerHTML = icons[os] || icons.windows;
-
-  // Pick the asset that matches a given OS from a release's asset list.
-  // Mac may have x64 + arm64 dmgs — prefer arm64 (most modern Macs); fall
-  // back to whatever's there.
-  function pickAsset(assets, target) {
-    if (!Array.isArray(assets)) return null;
-    const isExe   = a => /\.exe$/i.test(a.name);
-    const isDmg   = a => /\.dmg$/i.test(a.name);
-    const isImage = a => /\.AppImage$/i.test(a.name);
-    if (target === 'windows') return assets.find(isExe) || null;
-    if (target === 'linux')   return assets.find(isImage) || null;
-    if (target === 'mac') {
-      const arm = assets.find(a => isDmg(a) && /arm64|aarch64/i.test(a.name));
-      if (arm) return arm;
-      return assets.find(isDmg) || null;
-    }
-    return null;
+  if (os === 'windows') {
+    const ps = 'irm https://localml.app/install.ps1 | iex';
+    const cmd = document.getElementById('hero-cmd');
+    const text = document.getElementById('hero-cmd-text');
+    const prompt = cmd && cmd.querySelector('.cmd-prompt');
+    if (cmd) cmd.setAttribute('data-copy', ps);
+    if (text) text.textContent = ps;
+    if (prompt) prompt.textContent = '>';
   }
-
-  // 60 unauthenticated requests/hour per IP — cache the response so a single
-  // user reloading repeatedly doesn't burn quota.
-  const CACHE_KEY = 'localml-latest-release';
-  const CACHE_TTL_MS = 5 * 60 * 1000; // 5 min
-
-  function cached() {
-    try {
-      const raw = sessionStorage.getItem(CACHE_KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (!parsed || (Date.now() - parsed.t) > CACHE_TTL_MS) return null;
-      return parsed.data;
-    } catch { return null; }
-  }
-  function setCached(data) {
-    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), data })); } catch {}
-  }
-
-  async function fetchLatest() {
-    const c = cached();
-    if (c) return c;
-    const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
-      headers: { 'Accept': 'application/vnd.github+json' },
-    });
-    if (!res.ok) throw new Error(`GitHub API ${res.status}`);
-    const data = await res.json();
-    setCached(data);
-    return data;
-  }
-
-  function applyRelease(data) {
-    if (!data || !data.assets) return;
-    const tag = data.tag_name || '';
-    const verEl = document.getElementById('cta-version');
-    if (verEl && tag) verEl.textContent = tag;
-
-    // Primary CTA — point at the OS-matching asset.
-    const primary = document.getElementById('cta-download');
-    const primaryAsset = pickAsset(data.assets, os);
-    if (primary && primaryAsset) primary.href = primaryAsset.browser_download_url;
-
-    // Per-platform cards — each one points at its own OS asset, regardless
-    // of the visitor's actual OS.
-    for (const target of ['windows', 'mac', 'linux']) {
-      const el = document.getElementById(`plat-${target}`);
-      if (!el) continue;
-      const asset = pickAsset(data.assets, target);
-      if (asset) el.href = asset.browser_download_url;
-    }
-  }
-
-  fetchLatest()
-    .then(applyRelease)
-    .catch(err => {
-      // Fail silently — links already point at /releases/latest in HTML,
-      // which always works as a fallback.
-      console.warn('[localml] failed to fetch latest release:', err.message);
-    });
-
 })();
 
 // Toggle nav border on scroll for subtle separation.
@@ -138,14 +109,14 @@
     { threshold: 0.1 }
   );
   // Parent-level reveals (no stagger)
-  document.querySelectorAll('.section-head, .screenshot-frame').forEach((el) => {
+  document.querySelectorAll('.section-head, .screenshot-frame, .api-code').forEach((el) => {
     el.style.opacity = '0';
     el.style.transform = 'translateY(24px)';
     el.style.transition = 'opacity 0.7s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1)';
     io.observe(el);
   });
   // Grid reveals with stagger
-  ['.feat-grid', '.model-families', '.plat-grid'].forEach((gridSel) => {
+  ['.feat-grid', '.model-families', '.plat-grid', '.oneliners', '.api-points'].forEach((gridSel) => {
     const cards = document.querySelectorAll(`${gridSel} > *`);
     cards.forEach((el, i) => {
       el.style.opacity = '0';
@@ -172,7 +143,7 @@
   }
 })();
 
-// Mouse-follow halo on feature cards — reads cursor position, pipes to CSS var.
+// Mouse-follow halo on feature cards - reads cursor position, pipes to CSS var.
 (function () {
   const cards = document.querySelectorAll('.feat');
   cards.forEach((card) => {
@@ -184,7 +155,7 @@
   });
 })();
 
-// Subtle parallax on hero aurora — shifts with mouse (2–3px max).
+// Subtle parallax on hero aurora - shifts with mouse (2-3px max).
 (function () {
   const aurora = document.querySelector('.hero-aurora');
   const stars = document.getElementById('hero-stars');

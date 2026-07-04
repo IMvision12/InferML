@@ -1,4 +1,4 @@
-"""Hugging Face search / model info / token / cache — Python port of Electron's
+"""Hugging Face search / model info / token / cache - Python port of Electron's
 `services/huggingface.js`, `services/hf-auth.js`, and `services/hf-cache.js`.
 
 Uses the same `python/supported_architectures.json` whitelist so search results
@@ -22,7 +22,7 @@ _SERVER_DIR = Path(__file__).resolve().parent
 
 def _matrix_path() -> Path:
     # Dev/repo layout: python/supported_architectures.json. Installed package:
-    # a copy bundled inside the server package (server/_data/) — see
+    # a copy bundled inside the server package (server/_data/) - see
     # scripts/bundle-webui.js and pyproject package-data.
     for cand in (_PY_DIR / "supported_architectures.json",
                  _SERVER_DIR / "_data" / "supported_architectures.json"):
@@ -55,6 +55,24 @@ _MODEL_ID_RX = re.compile(r"^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$")
 
 def is_valid_model_id(mid) -> bool:
     return isinstance(mid, str) and 0 < len(mid) <= 200 and bool(_MODEL_ID_RX.match(mid))
+
+
+def hf_cache_dir() -> Path:
+    """The Hugging Face hub cache directory, resolved exactly the way
+    huggingface_hub resolves it - the single cross-platform source of truth
+    (macOS, Windows, Linux). Respects HF_HUB_CACHE / HF_HOME / XDG_CACHE_HOME."""
+    try:
+        from huggingface_hub.constants import HF_HUB_CACHE
+        return Path(HF_HUB_CACHE)
+    except Exception:
+        # Mirror huggingface_hub's own default resolution as a fallback.
+        if os.environ.get("HF_HUB_CACHE"):
+            return Path(os.environ["HF_HUB_CACHE"])
+        hf_home = os.environ.get("HF_HOME")
+        if not hf_home:
+            xdg = os.environ.get("XDG_CACHE_HOME") or str(Path.home() / ".cache")
+            hf_home = os.path.join(xdg, "huggingface")
+        return Path(hf_home) / "hub"
 
 
 def _lower(x) -> str:
@@ -240,7 +258,9 @@ def verify_token(token: str) -> dict:
 # ---------- cache delete ----------
 
 def _cache_roots() -> list[Path]:
-    roots = []
+    # The canonical hub dir first, then a few conventional fallbacks in case a
+    # model was fetched under a different HF_HOME earlier. Cross-platform.
+    roots = [hf_cache_dir()]
     if os.environ.get("HF_HUB_CACHE"):
         roots.append(Path(os.environ["HF_HUB_CACHE"]))
     if os.environ.get("HF_HOME"):
@@ -250,7 +270,10 @@ def _cache_roots() -> list[Path]:
     roots.append(Path.home() / ".cache" / "huggingface" / "hub")
     seen, out = set(), []
     for r in roots:
-        rp = r.resolve()
+        try:
+            rp = r.resolve()
+        except Exception:
+            rp = r
         if rp not in seen:
             seen.add(rp)
             out.append(r)

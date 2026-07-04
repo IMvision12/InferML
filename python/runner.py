@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""LocalML inference sidecar — legacy stdin/stdout entry point.
+"""LocalML inference sidecar - legacy stdin/stdout entry point.
 
 All inference logic now lives in `engine.py` (shared with the web server). This
 file is a thin NDJSON shim kept for the `_test_*` harnesses and back-compat:

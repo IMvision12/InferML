@@ -1,4 +1,4 @@
-"""Smoke test — exercise each supported kind with a small model.
+"""Smoke test - exercise each supported kind with a small model.
 
 Run:
     python _test_inference.py [suite_name...]
@@ -79,7 +79,7 @@ CASES = [
      "masks",
      lambda o: o["overlay"].startswith("data:image/png;base64,") and isinstance(o["legend"], list)),
 
-    # DETR's segmentation head — same architecture as the detection
+    # DETR's segmentation head - same architecture as the detection
     # checkpoint but a different fine-tune, so it exercises the panoptic
     # post-processing path inside the HF image-segmentation pipeline. Worth
     # smoke-testing because DETR's the canonical "one architecture, two
@@ -170,7 +170,7 @@ def _preview(o):
 def main():
     suites = set(sys.argv[1:]) or {"quick"}
     cases = [c for c in CASES if c[0] in suites or "all" in suites]
-    print(f"\n=== LocalML inference smoke test — {len(cases)} cases on device={resolve_device()} ===\n")
+    print(f"\n=== LocalML inference smoke test - {len(cases)} cases on device={resolve_device()} ===\n")
     results = []
     for case in cases:
         print(f">> {case[1]}  ({case[2]})")

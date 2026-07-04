@@ -1,18 +1,18 @@
 const { useState: useStateTW, useEffect: useEffectTW, useRef: useRefTW } = React;
 
 // TASK_META fields:
-//   input    — primary composer slot: 'image' | 'audio' | 'text'
-//   textSlot — optional secondary text field rendered alongside image. Present on
+//   input    - primary composer slot: 'image' | 'audio' | 'text'
+//   textSlot - optional secondary text field rendered alongside image. Present on
 //              zero-shot / VLM tasks that need candidate labels or a prompt.
 //              { label, placeholder, required, help }
-//   guide    — empty-state description of what to provide.
+//   guide    - empty-state description of what to provide.
 //              { summary, rows: [{k, v, req}], example? }
-//   params   — tunable parameters surfaced in the composer's Advanced panel.
+//   params   - tunable parameters surfaced in the composer's Advanced panel.
 //              Each entry: { key, label, type, default, min?, max?, step?,
 //              help?, options? (select), visibleWhen?(modelId) }.
 //              type: 'number' | 'range' | 'text' | 'boolean' | 'select'
 
-// Shared generation params — used by every text-generation-style task and VLM.
+// Shared generation params - used by every text-generation-style task and VLM.
 const GEN_PARAMS = [
   { key: 'max_new_tokens', label: 'Max new tokens', type: 'number', default: 256, min: 16,  max: 4096, step: 16, help: 'Upper bound on generated tokens. Truncates long outputs. Raise if answers are cut off.' },
   { key: 'do_sample',      label: 'Sample (random)', type: 'boolean', default: false,                             help: 'Off → greedy (deterministic). On → uses temperature / top_p / top_k.' },
@@ -39,7 +39,7 @@ const TASK_META = {
           { value: 'panoptic', label: 'Panoptic' },
         ],
       },
-      { key: 'overlay_alpha',    label: 'Overlay opacity',       type: 'range', default: 140, min: 50, max: 255, step: 5,   help: 'Alpha of the mask overlay composited onto the image (0–255).' },
+      { key: 'overlay_alpha',    label: 'Overlay opacity',       type: 'range', default: 140, min: 50, max: 255, step: 5,   help: 'Alpha of the mask overlay composited onto the image (0-255).' },
       { key: 'legend_min_pct',   label: 'Legend min coverage %', type: 'range', default: 0.3, min: 0,  max: 5,   step: 0.1, help: 'Hide classes covering less than this percent of the image from the legend.' },
     ]},
   'mask-generation':     { nm: 'SAM Segment', input: 'image', output: 'masks',  icon: 'sparkle', accent: 'oklch(72% 0.15 200)',
@@ -54,7 +54,7 @@ const TASK_META = {
       { key: 'points_per_batch', label: 'Points per batch', type: 'number', default: 64,  min: 16, max: 256, step: 16, help: 'Auto mode only: higher = finer grid of prompt points, slower run.' },
       { key: 'max_masks',        label: 'Max masks',        type: 'number', default: 64,  min: 4,  max: 256, step: 4,  help: 'Auto mode only: cap on returned regions.' },
       { key: 'min_mask_pct',     label: 'Min mask %',       type: 'range',  default: 0.5, min: 0,  max: 10,  step: 0.1, help: 'Auto mode only: discard masks covering less than this percent of the image.' },
-      { key: 'overlay_alpha',    label: 'Overlay opacity',  type: 'range',  default: 140, min: 50, max: 255, step: 5,  help: 'Alpha of the mask overlay (0–255).' },
+      { key: 'overlay_alpha',    label: 'Overlay opacity',  type: 'range',  default: 140, min: 50, max: 255, step: 5,  help: 'Alpha of the mask overlay (0-255).' },
     ]},
   'object-detection':    { nm: 'Detect',      input: 'image', output: 'boxes',  icon: 'target',  accent: 'oklch(70% 0.14 155)',
     guide: {
@@ -237,7 +237,7 @@ const TASK_META = {
     params: [
       { key: 'speaker_index', label: 'Speaker index', type: 'number', default: 7306, min: 0, max: 7930, step: 1,
         visibleWhen: (mid) => /speecht5/i.test(mid || ''),
-        help: 'SpeechT5 only. The CMU-Arctic dataset has 7931 x-vectors (0–7930). 7306 is the HF default (clear female voice). Try other indices for different speakers.' },
+        help: 'SpeechT5 only. The CMU-Arctic dataset has 7931 x-vectors (0-7930). 7306 is the HF default (clear female voice). Try other indices for different speakers.' },
     ]},
 
   // ─── Diffusers ──────────────────────────────────────────────────────
@@ -248,7 +248,7 @@ const TASK_META = {
       example: 'a cinematic photo of a red fox curled up on a moss-covered stone, golden-hour lighting, 35mm',
     },
     params: [
-      { key: 'num_inference_steps', label: 'Inference steps',  type: 'number', default: 20,  min: 1,  max: 100, step: 1,   help: 'More steps → higher quality, linearly slower. 20–30 is a sweet spot for most SDXL / SD models; FLUX works at 4–8.' },
+      { key: 'num_inference_steps', label: 'Inference steps',  type: 'number', default: 20,  min: 1,  max: 100, step: 1,   help: 'More steps → higher quality, linearly slower. 20-30 is a sweet spot for most SDXL / SD models; FLUX works at 4-8.' },
       { key: 'guidance_scale',      label: 'Guidance scale',   type: 'range',  default: 7.5, min: 0,  max: 20,  step: 0.5, help: 'Classifier-free guidance. Higher = stricter prompt adherence, less diversity.' },
       { key: 'negative_prompt',     label: 'Negative prompt',  type: 'text',   default: '',                                help: 'Things to steer AWAY from. e.g. "blurry, extra fingers, watermark".' },
     ]},
@@ -326,7 +326,7 @@ function titleForTask(meta, input) {
     const snippet = text.length > 48 ? text.slice(0, 48).trimEnd() + '…' : text;
     return `${verb}: ${snippet}`;
   }
-  // Image/audio with an optional text prompt — prefer the prompt if provided.
+  // Image/audio with an optional text prompt - prefer the prompt if provided.
   const promptText = (input.text || '').trim().replace(/\s+/g, ' ');
   if (promptText) {
     const s = promptText.length > 40 ? promptText.slice(0, 40).trimEnd() + '…' : promptText;
@@ -531,7 +531,7 @@ function TaskWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
   };
   const [error, setError] = useStateTW(null);
   const [paramValues, setParamValues] = useStateTW({});
-  // SAM point prompts — one per user click on the image. {x, y, label} with
+  // SAM point prompts - one per user click on the image. {x, y, label} with
   // x/y normalized to [0,1] and label: 1 = include, 0 = exclude.
   const [samPoints, setSamPoints] = useStateTW([]);
   const [samMode, setSamMode] = useStateTW(1); // 1 = include, 0 = exclude
@@ -576,7 +576,7 @@ function TaskWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
         task = installed?.[s.modelId]?.task || modelMeta?.task || '';
       }
 
-      // Strip any legacy dummy outputs — real inference isn't wired yet.
+      // Strip any legacy dummy outputs - real inference isn't wired yet.
       const runs = (s.runs || []).map(r => r.status === 'stub' || (r.status === 'running' && !r.output)
         ? { ...r, status: 'pending', output: null }
         : r);
@@ -629,7 +629,7 @@ function TaskWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
 
     // For image+textSlot tasks, merge the secondary text into the fileInput
     // payload. The Python side reads `inputs.dataUrl` and `inputs.text`
-    // independently — a single object carries both.
+    // independently - a single object carries both.
     // For SAM with user-clicked points, attach `points` so the Python side
     // picks the point-prompt variant instead of auto-grid.
     let input;
@@ -637,7 +637,7 @@ function TaskWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
       input = { kind: 'text', text: textInput.trim() };
     } else if (fileInput) {
       input = { ...fileInput };
-      // Skip text for Florence tasks that ignore the prompt — otherwise
+      // Skip text for Florence tasks that ignore the prompt - otherwise
       // stale textarea content from a previous task would leak into the
       // task-token payload (e.g. "<CAPTION>old phrase" confuses the model).
       if (textSlot && (!isFlorence || florenceUsesPrompt)) {
@@ -1213,7 +1213,7 @@ function RunCard({ run, meta, modelId }) {
         )}
         {run.input?.kind === 'audio' && <div className="tw-audio-chip"><Icon name="waveform" size={12}/> {run.input.name}</div>}
         {run.input?.kind === 'text' && <div className="tw-text">{run.input.text}</div>}
-        {/* Secondary text slot on image-mode runs — candidate labels or a VLM prompt. */}
+        {/* Secondary text slot on image-mode runs - candidate labels or a VLM prompt. */}
         {run.input?.kind === 'image' && run.input?.text && (
           <div className="tw-run-prompt">
             <span className="tw-run-prompt-k">{meta.textSlot?.label || 'Prompt'}</span>

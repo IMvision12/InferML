@@ -5,13 +5,13 @@ Florence-2, FLUX, ...) and owns:
 
   - `__init__.py` exporting one of two registration shapes:
 
-    Shape A — model_type-keyed (transformers families with a config.json
+    Shape A - model_type-keyed (transformers families with a config.json
     `model_type` tag the registry can dispatch on):
         MODEL_TYPES : list[str]      e.g. ["detr", "rt_detr", "rt_detr_v2"]
         TASK        : str            e.g. "object-detection". optional hint
         ADAPTER     : type[Adapter]  the adapter class
 
-    Shape B — library-keyed (families whose runtime doesn't expose a
+    Shape B - library-keyed (families whose runtime doesn't expose a
     transformers `model_type`. mainly diffusers checkpoints, where
     families are identified by the repo id):
         LIBRARY        : str         e.g. "diffusers"

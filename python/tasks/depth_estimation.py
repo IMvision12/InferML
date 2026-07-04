@@ -1,6 +1,6 @@
-"""depth-estimation — single image → colorized depth map.
+"""depth-estimation - single image → colorized depth map.
 
-Works for DPT, GLPN, ZoeDepth, MiDaS, Depth Anything v1/v2, Depth Pro — every
+Works for DPT, GLPN, ZoeDepth, MiDaS, Depth Anything v1/v2, Depth Pro - every
 HF model tagged `depth-estimation`. The pipeline returns the depth as either
 a grayscale PIL image (newer transformers) or a torch tensor; we accept both
 and colorize via a turbo/plasma colormap so the UI shows a finished image."""
@@ -40,7 +40,7 @@ def _colorize(arr01):
         rgba = cm.get_cmap("turbo")(arr01)
         return (rgba[..., :3] * 255).astype(np.uint8)
     except Exception:
-        # Plasma-ish 5-stop linear ramp — close enough for a fallback.
+        # Plasma-ish 5-stop linear ramp - close enough for a fallback.
         stops = np.array([
             [13, 8, 135], [126, 3, 168], [203, 70, 121], [248, 149, 64], [240, 249, 33],
         ], dtype=np.float32)
@@ -64,8 +64,8 @@ class DepthEstimationVariant(TaskVariant):
         W, H = img.size
         result = state.pipe(img)
         # Pipeline shape: {"depth": PIL grayscale, "predicted_depth": Tensor}.
-        # `depth` is the post-processed visualization (already 0–255 grayscale);
-        # `predicted_depth` is raw model output. Prefer `depth` — its scale is
+        # `depth` is the post-processed visualization (already 0-255 grayscale);
+        # `predicted_depth` is raw model output. Prefer `depth` - its scale is
         # consistent across models.
         depth = None
         if isinstance(result, dict):
@@ -77,7 +77,7 @@ class DepthEstimationVariant(TaskVariant):
         lo, hi = float(arr.min()), float(arr.max())
         norm = np.zeros_like(arr) if hi - lo < 1e-6 else (arr - lo) / (hi - lo)
         # Many depth models predict *inverse* depth (closer = larger value).
-        # Turbo reads better when near = warm, far = cool — flip when asked.
+        # Turbo reads better when near = warm, far = cool - flip when asked.
         if bool(params.get("invert", False)):
             norm = 1.0 - norm
         rgb = _colorize(norm)

@@ -35,7 +35,7 @@ function rmrf(p) {
 }
 
 if (!fs.existsSync(path.join(DIST, 'index.html'))) {
-  console.error('[bundle] no built frontend at src/renderer/dist — run `npm run build:renderer` first.');
+  console.error('[bundle] no built frontend at src/renderer/dist - run `npm run build:renderer` first.');
   process.exit(1);
 }
 

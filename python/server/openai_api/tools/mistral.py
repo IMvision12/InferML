@@ -1,7 +1,7 @@
 """Mistral / Mixtral tool-call format.
 
 Mistral's v3 tokenizer emits `[TOOL_CALLS] [{"name": ..., "arguments": {...}}]`
-— a JSON array following the [TOOL_CALLS] control token.
+- a JSON array following the [TOOL_CALLS] control token.
 """
 from __future__ import annotations
 

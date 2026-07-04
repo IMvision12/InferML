@@ -1,4 +1,4 @@
-"""text-generation / translation / summarization — variants: plain, chat-template, reasoning-think-parse.
+"""text-generation / translation / summarization - variants: plain, chat-template, reasoning-think-parse.
 
 Note on seq2seq tasks: recent transformers removed `text2text-generation`,
 `summarization`, and `translation` from the public pipeline registry. Those
@@ -28,7 +28,7 @@ def _is_reasoning_model(info):
 
 
 class ReasoningVariant(TaskVariant):
-    """DeepSeek-R1, QwQ — strip <think>...</think> from the output."""
+    """DeepSeek-R1, QwQ - strip <think>...</think> from the output."""
     name = "reasoning-think-parse"
 
     def can_handle(self, info, inputs):
@@ -53,7 +53,7 @@ class ReasoningVariant(TaskVariant):
 
 
 class ChatTemplateVariant(TaskVariant):
-    """Instruct / chat models — use the tokenizer's chat template."""
+    """Instruct / chat models - use the tokenizer's chat template."""
     name = "chat-template"
 
     def can_handle(self, info, inputs):
@@ -73,7 +73,7 @@ class ChatTemplateVariant(TaskVariant):
         raw = state.pipe(prompt, **kwargs)
         r0 = raw[0] if isinstance(raw, list) else raw
         out = r0.get("generated_text") or ""
-        # Pipelines often echo the prompt — strip it.
+        # Pipelines often echo the prompt - strip it.
         if out.startswith(prompt):
             out = out[len(prompt):].lstrip()
         return ok.text(out)
@@ -89,7 +89,7 @@ class PlainGenVariant(TaskVariant):
         text = inputs["text"].strip()
         kwargs = {k: params[k] for k in ("max_new_tokens", "temperature", "top_p", "top_k", "do_sample") if k in params}
         kwargs.setdefault("max_new_tokens", 256)
-        # Translation-specific language kwargs — only passed when provided so
+        # Translation-specific language kwargs - only passed when provided so
         # Marian (which doesn't accept them) isn't broken.
         for k in ("src_lang", "tgt_lang"):
             if params.get(k):
@@ -110,7 +110,7 @@ class TextGenerationTask(TaskHandler):
     name = "text-generation"
     output_kind = "text"
     default_params = {"max_new_tokens": 256}
-    # Order matters — reasoning > chat > plain.
+    # Order matters - reasoning > chat > plain.
     variants = [ReasoningVariant(), ChatTemplateVariant(), PlainGenVariant()]
 
 

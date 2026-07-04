@@ -1,4 +1,4 @@
-"""Hardware sampling — Python port of `services/systeminfo.js`.
+"""Hardware sampling - Python port of `services/systeminfo.js`.
 
 Returns the same shape the renderer consumes: cpu / mem / gpu / disk / os.
 psutil for CPU/mem/disk; nvidia-smi (falling back to torch) for GPU.

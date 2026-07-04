@@ -1,11 +1,11 @@
-"""document-question-answering — Donut, LayoutLM, LayoutLMv3 and friends.
+"""document-question-answering - Donut, LayoutLM, LayoutLMv3 and friends.
 
 Two real shapes of model live under this pipeline tag:
 
-  1. LayoutLM-style — needs a question. Internally OCRs the page (via a
+  1. LayoutLM-style - needs a question. Internally OCRs the page (via a
      bundled tesseract or a precomputed words/boxes pair), feeds tokens to
      the model, returns extractive `[{answer, score, start, end}]`.
-  2. Donut DocVQA — generative. Same pipeline accepts (image, question) and
+  2. Donut DocVQA - generative. Same pipeline accepts (image, question) and
      returns the same shape, but answers are free-form.
 
 The image-to-text pipeline already handles pure OCR captioners (TrOCR, vanilla
@@ -39,7 +39,7 @@ class DocumentQAVariant(TaskVariant):
 
         result = state.pipe(image=img, question=question, **kwargs)
 
-        # Pipeline returns either a single dict or a list — normalize.
+        # Pipeline returns either a single dict or a list - normalize.
         if isinstance(result, dict):
             return ok.text(result.get("answer") or "")
         if isinstance(result, list) and result:

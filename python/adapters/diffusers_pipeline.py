@@ -9,7 +9,7 @@ from io_utils import decode_image, resolve_device, torch_dtype_for_device
 class DiffusersAdapter(Adapter):
     @classmethod
     def can_handle(cls, info):
-        # text-to-video is excluded on purpose — run() returns `result.images[0]`
+        # text-to-video is excluded on purpose - run() returns `result.images[0]`
         # which doesn't exist for video pipelines. Add a video output branch
         # before re-enabling.
         if info.get("library") == "diffusers":

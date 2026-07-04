@@ -1,7 +1,7 @@
 """Bridge between the OpenAI request shape and a loaded transformers LLM.
 
 Digs the (model, tokenizer) out of whichever adapter the engine has cached,
-builds a prompt via the tokenizer's chat template, and generates — full or
+builds a prompt via the tokenizer's chat template, and generates - full or
 streamed. Tool handling (Phase 4) plugs in via the optional `tools` argument to
 `build_inputs` and the parser layer in `openai_api.tools`.
 """
@@ -78,7 +78,7 @@ def resolve_llm(engine, requested_model: str | None):
     model, tokenizer = _extract_model_tokenizer(adapter)
     if model is None or tokenizer is None:
         raise LLMNotLoaded(
-            f"The loaded model {model_id!r} isn't a text-generation model — "
+            f"The loaded model {model_id!r} isn't a text-generation model - "
             "the OpenAI endpoint only serves LLMs."
         )
     return model, tokenizer, model_id

@@ -1,7 +1,7 @@
 """Task handler + variant ABCs.
 
 A TaskHandler owns everything about executing one *task* (e.g. object-detection).
-Each task declares one or more Variants — different ways to invoke models for
+Each task declares one or more Variants - different ways to invoke models for
 that task. The handler's `pick_variant` routes by inspecting the model metadata
 and the caller's inputs.
 
@@ -26,7 +26,7 @@ class LoadedPipeline:
     """Everything a variant might want to reuse across calls."""
     info: dict
     device: Any
-    pipe: Any = None          # HF pipeline instance (nullable — variants may bypass it)
+    pipe: Any = None          # HF pipeline instance (nullable - variants may bypass it)
     model: Any = None         # raw model, for variants that need direct .generate()
     processor: Any = None     # processor/tokenizer/image_processor
 
@@ -74,7 +74,7 @@ class TaskHandler(ABC):
         return merged
 
     def load_pipeline(self, info: dict, device: Any, extra_kwargs: dict | None = None) -> LoadedPipeline:
-        """Default loader — use `transformers.pipeline()`. Override when a task
+        """Default loader - use `transformers.pipeline()`. Override when a task
         wants a different load strategy."""
         from transformers import pipeline as hf_pipeline
         from io_utils import pipeline_device_arg

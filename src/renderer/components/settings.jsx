@@ -103,7 +103,7 @@ function GeneralSection({ version, hw, pyStatus, refreshPyStatus }) {
   const [busy, setBusy] = useStateS(null); // 'hf' | 'py' | null
   const [error, setError] = useStateS(null);
 
-  // A near-empty cache walks in <10 ms — faster than the browser can paint —
+  // A near-empty cache walks in <10 ms - faster than the browser can paint -
   // so without a floor the "Calculating…" state never visibly appears for
   // small/empty rows. Hold each row's loading flag for at least MIN_HOLD_MS
   // so the indicator is always perceptible, even if the IPC returns instantly.
@@ -146,7 +146,7 @@ function GeneralSection({ version, hw, pyStatus, refreshPyStatus }) {
     return () => { alive = false; };
   }, []);
 
-  // Refresh the Models cache row whenever installs.json mutates — i.e.,
+  // Refresh the Models cache row whenever installs.json mutates - i.e.,
   // when the user uninstalls a model from the Hub while Settings is open.
   // Without this, the row keeps showing the pre-uninstall byte count until
   // the user closes and reopens Settings.
@@ -178,7 +178,7 @@ function GeneralSection({ version, hw, pyStatus, refreshPyStatus }) {
   };
 
   const fmtBytes = (n) => {
-    if (n == null) return '—';
+    if (n == null) return '-';
     if (n < 1024) return `${n} B`;
     const u = ['KB', 'MB', 'GB', 'TB'];
     let v = n / 1024, i = 0;
@@ -577,7 +577,7 @@ function UpdateCheckButton({ currentVersion }) {
     setState('installing');
     // Tell App to show the themed full-screen "Installing update" overlay.
     // We pair this with NSIS oneClick:true + quitAndInstall(silent=true) so
-    // the user no longer sees the OS-native installer wizard mid-update —
+    // the user no longer sees the OS-native installer wizard mid-update -
     // just our themed overlay, then the new app launches.
     window.dispatchEvent(new CustomEvent('localml:update-installing', {
       detail: { version: result?.latestVersion || '' },
@@ -600,7 +600,7 @@ function UpdateCheckButton({ currentVersion }) {
       setState('error');
       window.dispatchEvent(new CustomEvent('localml:update-install-failed'));
     }
-    // Note: we don't clearTimeout on success — when install succeeds, the
+    // Note: we don't clearTimeout on success - when install succeeds, the
     // app quits before the setTimeout fires, so no leak.
   };
 

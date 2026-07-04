@@ -134,7 +134,7 @@ EXPECTED_KIND = {
 
 
 # ─── matrix: (model_id, task) ─────────────────────────────────────────────
-# Skips (toolarge / gated / no-checkpoint) are OMITTED from this list — the
+# Skips (toolarge / gated / no-checkpoint) are OMITTED from this list - the
 # tracking doc in MODEL_TESTING.md captures them.
 
 CASES = [
@@ -512,7 +512,7 @@ def main():
 
     # Filtering
     if "small" in args:
-        # We can only filter by probed size — fall back: filter at runtime
+        # We can only filter by probed size - fall back: filter at runtime
         # by skipping anything probed >1GB. The runner already calls probe_repo_size,
         # so we pass through and let SKIP_TOOLARGE / size_gb sort it.
         # For "small" mode, set a smaller cap.
@@ -527,7 +527,7 @@ def main():
             cases = [c for c in cases if c[0] == m]
 
     save_test_image_once()
-    print(f"=== LocalML matrix smoke test — {len(cases)} cases on device={resolve_device()} ===")
+    print(f"=== LocalML matrix smoke test - {len(cases)} cases on device={resolve_device()} ===")
     print(f"  HF_HOME    = {os.environ['HF_HOME']}")
     print(f"  Results    -> {RESULTS_PATH}")
     print(f"  Outputs    -> {OUTPUTS_DIR}")

@@ -1,4 +1,4 @@
-"""Inference routes — HTTP equivalents of the old `tasks:*` IPC channels.
+"""Inference routes - HTTP equivalents of the old `tasks:*` IPC channels.
 
   POST /api/run              ← tasks:run
   POST /api/download         ← tasks:download   (SSE progress stream)
@@ -28,7 +28,7 @@ router = APIRouter(prefix="/api")
 _ACTIVE_DOWNLOADS: dict[str, threading.Event] = {}
 
 # The inference stack that makes ALL model families runnable. `ready` requires
-# every one of these importable — a bare `pipx install localml` (no [inference]
+# every one of these importable - a bare `pipx install localml` (no [inference]
 # extra) has none of them, so the onboarding shows and offers to install them.
 _FULL_STACK = [
     "torch", "transformers", "PIL", "numpy", "huggingface_hub",
@@ -83,7 +83,7 @@ async def download(payload: dict = Body(...)):
     _ACTIVE_DOWNLOADS[model_id] = cancel_event
 
     def on_progress(evt: dict) -> None:
-        # Called from the worker thread — hop back to the loop thread.
+        # Called from the worker thread - hop back to the loop thread.
         loop.call_soon_threadsafe(queue.put_nowait, {"type": "progress", **evt})
 
     def worker():
@@ -189,7 +189,11 @@ def _probe_status() -> dict:
     except Exception:
         torch_version = None
 
-    hf_cache = os.environ.get("HF_HOME") or str(Path.home() / ".cache" / "huggingface")
+    try:
+        from server.hf_service import hf_cache_dir
+        hf_cache = str(hf_cache_dir())
+    except Exception:
+        hf_cache = os.environ.get("HF_HOME") or str(Path.home() / ".cache" / "huggingface")
 
     return {
         # In the pipx model the running server IS the runtime.
@@ -210,20 +214,31 @@ def _probe_status() -> dict:
     }
 
 
+def _torch_index(accelerator: str) -> tuple[str, str | None]:
+    """Cross-platform torch wheel index for the chosen accelerator.
+
+      - macOS:            default PyPI wheel (MPS support is built in).
+      - GPU (win/linux):  CUDA 12.4 index.
+      - CPU (win/linux):  CPU-only index - the DEFAULT wheel on Linux is the
+                          large CUDA build, so CPU installs must be explicit.
+    """
+    import platform
+    if platform.system() == "Darwin":
+        return ("Apple Silicon / MPS", None)
+    if accelerator == "gpu":
+        return ("CUDA 12.4", "https://download.pytorch.org/whl/cu124")
+    return ("CPU", "https://download.pytorch.org/whl/cpu")
+
+
 def _pip_phases(accelerator: str):
     """(step label, pip argv) pairs for installing the inference stack."""
-    import platform
     import sys
     torch_pkgs = ["torch>=2.6", "torchvision", "torchaudio>=2.6"]
     pip = [sys.executable, "-m", "pip", "install"]
-    if accelerator == "gpu" and platform.system() != "Darwin":
-        torch_phase = ("Installing PyTorch (CUDA 12.4)",
-                       pip + ["--index-url", "https://download.pytorch.org/whl/cu124", *torch_pkgs])
-    else:
-        label = "Installing PyTorch (Apple Silicon / MPS)" if platform.system() == "Darwin" else "Installing PyTorch (CPU)"
-        torch_phase = (label, pip + torch_pkgs)
+    label, index = _torch_index(accelerator)
+    torch_cmd = pip + (["--index-url", index] if index else []) + torch_pkgs
     return [
-        torch_phase,
+        (f"Installing PyTorch ({label})", torch_cmd),
         ("Installing transformers, diffusers and supporting libraries", pip + _INFERENCE_PKGS),
     ]
 

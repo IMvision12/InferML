@@ -18,7 +18,7 @@ class Adapter(ABC):
         """Return True if this adapter can run the described model.
 
         `info` is the dict from routing.inspect_model. Implementations should
-        inspect `model_id`, `model_type`, `architectures`, `tags`, etc. —
+        inspect `model_id`, `model_type`, `architectures`, `tags`, etc. -
         *not* download any weights."""
         return False
 
@@ -33,7 +33,7 @@ class Adapter(ABC):
         `audio`, `vector`)."""
 
     def unload(self) -> None:
-        """Hook for freeing GPU memory — default: drop references."""
+        """Hook for freeing GPU memory - default: drop references."""
         for attr in list(self.__dict__.keys()):
             if attr not in ("override",):
                 setattr(self, attr, None)

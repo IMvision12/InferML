@@ -1,4 +1,4 @@
-"""Simpler tasks — one variant each. Kept in one file to avoid noise; they can
+"""Simpler tasks - one variant each. Kept in one file to avoid noise; they can
 each be split out when a second variant is needed."""
 from __future__ import annotations
 
@@ -8,13 +8,13 @@ import output_kinds as ok
 
 # --- text-to-speech ---
 
-# CMU-Arctic x-vector zip — fetched once via hf_hub_download (~17 MB, cached
+# CMU-Arctic x-vector zip - fetched once via hf_hub_download (~17 MB, cached
 # under HF_HOME). Kept process-global so subsequent SpeechT5 runs are free.
 #
 # Why not the `datasets` package? `Matthijs/cmu-arctic-xvectors` is a
 # script-loaded dataset, and `datasets >= 4.0` dropped support for loading
 # scripts entirely (raises `RuntimeError: Dataset scripts are no longer
-# supported`). Pulling the zip directly side-steps that — same data, same
+# supported`). Pulling the zip directly side-steps that - same data, same
 # 7931 x-vectors, no `datasets` dependency.
 _XVECT_ZIP = None
 _XVECT_NAMES = None
@@ -23,7 +23,7 @@ _XVECT_NAMES = None
 def _load_speaker_embedding(speaker_index: int):
     """Return a 512-d CMU-Arctic x-vector (shape [1, 512], float32) for
     SpeechT5. Index 7306 in the alphabetically-sorted file list is the
-    `slt` female speaker — same voice the HF tutorials use."""
+    `slt` female speaker - same voice the HF tutorials use."""
     import io
     import zipfile
     import numpy as np
@@ -56,7 +56,7 @@ class SpeechT5Variant(TaskVariant):
     explicit HiFiGAN vocoder to convert mel spectrograms to audio.
 
     Going through `pipeline("text-to-speech")` has been observed to crash with
-    a Windows access violation (exit code 0xC0000005) — almost certainly
+    a Windows access violation (exit code 0xC0000005) - almost certainly
     because the pipeline path returns spectrograms when the vocoder hasn't
     been wired up, and the post-processing step then dereferences bad memory.
 
@@ -79,7 +79,7 @@ class SpeechT5Variant(TaskVariant):
         if model is None or processor is None:
             raise RuntimeError("SpeechT5 pipeline didn't expose a model/processor")
 
-        # Resolve the device once — used for vocoder, embeddings, and inputs.
+        # Resolve the device once - used for vocoder, embeddings, and inputs.
         try:
             dev = next(model.parameters()).device
         except (StopIteration, AttributeError):
@@ -114,7 +114,7 @@ class SpeechT5Variant(TaskVariant):
 
 
 class TextToSpeechVariant(TaskVariant):
-    """VITS, Bark, MMS-TTS, FastSpeech2, MusicGen — anything that doesn't need
+    """VITS, Bark, MMS-TTS, FastSpeech2, MusicGen - anything that doesn't need
     an external speaker conditioning tensor."""
     name = "standard"
 
@@ -137,5 +137,5 @@ class TextToSpeechTask(TaskHandler):
     name = "text-to-speech"
     output_kind = "audio"
     default_params = {}
-    # SpeechT5 first — its `can_handle` is more specific (model-id check).
+    # SpeechT5 first - its `can_handle` is more specific (model-id check).
     variants = [SpeechT5Variant(), TextToSpeechVariant()]

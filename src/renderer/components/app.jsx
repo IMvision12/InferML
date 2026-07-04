@@ -244,7 +244,7 @@ function App() {
     };
   }, []);
 
-  // Theme persist — apply the right body class for the selected theme.
+  // Theme persist - apply the right body class for the selected theme.
   useEffect(() => {
     const themeClasses = ['light', 'theme-nord', 'theme-dracula', 'theme-tokyo', 'theme-catppuccin', 'theme-gruvbox', 'theme-onedark'];
     document.body.classList.remove(...themeClasses);
@@ -308,7 +308,7 @@ function App() {
   const openHubInstalled = () => { setView('hub'); setActiveSession(null); setHubInstalledMode(true); };
   const openSession = (id) => { setView('session'); setActiveSession(id); };
   const startSessionWithModel = async (modelId) => {
-    // Always read fresh installed metadata — closure state may be stale after recent installs.
+    // Always read fresh installed metadata - closure state may be stale after recent installs.
     const fresh = await window.localml?.hf.installed().catch(() => null);
     const meta = (fresh && fresh[modelId]) || installedModels[modelId] || {};
     const task = meta?.task || '';
@@ -530,7 +530,7 @@ function App() {
 function renderWorkspace(session, installedModels, onSaved) {
   const modelId = session.modelId || session.model;
   const installedMeta = (modelId && installedModels[modelId]) || null;
-  // Prefer the session's persisted task — it's authoritative for the routing decision.
+  // Prefer the session's persisted task - it's authoritative for the routing decision.
   const task = session.task || installedMeta?.task || '';
   const meta = installedMeta || { task };
 
@@ -538,7 +538,7 @@ function renderWorkspace(session, installedModels, onSaved) {
   // value is the structured-output task tokens (OD, OCR-with-region, phrase
   // grounding, dense region captions, …). The chat workspace only renders
   // text and would never expose the picker, so route Florence to the task
-  // workspace instead — it has the existing `florence_task` selector + the
+  // workspace instead - it has the existing `florence_task` selector + the
   // box / mask renderers needed for those structured outputs.
   const isFlorence = /florence-?2/i.test(modelId || '');
   if (CHAT_TASKS.has(task) && !isFlorence) {
@@ -641,7 +641,7 @@ function sbCpu(hw) {
   if (typeof v !== 'number') return '- %';
   return `${v.toFixed(2)} %`;
 }
-// GPU stat for the status bar — Windows/Linux only. On macOS the GPU shares
+// GPU stat for the status bar - Windows/Linux only. On macOS the GPU shares
 // system RAM (unified memory), so showing it again would just duplicate the
 // RAM number. Returns null when there's nothing useful to display.
 function sbGpu(hw) {
@@ -840,7 +840,7 @@ function ChatItem({ session, isActive, onOpen, onDeleted }) {
 // Full-screen overlay shown for the brief moment between the user clicking
 // "Install & restart" and electron-updater quitting the app to apply the
 // update. With NSIS oneClick:true + quitAndInstall(silent=true), there is
-// no Windows-native installer wizard at all — this overlay is the only
+// no Windows-native installer wizard at all - this overlay is the only
 // thing the user sees during the transition.
 function UpdatingOverlay({ version }) {
   return (
@@ -856,7 +856,7 @@ function UpdatingOverlay({ version }) {
   );
 }
 
-// Themed confirmation modal — replaces window.confirm() so destructive
+// Themed confirmation modal - replaces window.confirm() so destructive
 // actions match the rest of the UI. Keyboard: Esc cancels, Enter confirms.
 // The backdrop click cancels too. The confirm button auto-focuses so a
 // keyboard user can just press Enter.
