@@ -1,0 +1,65 @@
+"""document-question-answering — Donut, LayoutLM, LayoutLMv3 and friends.
+
+Two real shapes of model live under this pipeline tag:
+
+  1. LayoutLM-style — needs a question. Internally OCRs the page (via a
+     bundled tesseract or a precomputed words/boxes pair), feeds tokens to
+     the model, returns extractive `[{answer, score, start, end}]`.
+  2. Donut DocVQA — generative. Same pipeline accepts (image, question) and
+     returns the same shape, but answers are free-form.
+
+The image-to-text pipeline already handles pure OCR captioners (TrOCR, vanilla
+Donut), so this task is specifically the question-answering shape."""
+from __future__ import annotations
+
+from .base import TaskHandler, TaskVariant
+from io_utils import decode_image
+import output_kinds as ok
+
+
+class DocumentQAVariant(TaskVariant):
+    name = "standard"
+
+    def can_handle(self, info, inputs):
+        return bool(inputs.get("dataUrl"))
+
+    def run(self, state, inputs, params):
+        img = decode_image(inputs["dataUrl"])
+        question = (inputs.get("text") or "").strip()
+        if not question:
+            # Sensible default for users who just want OCR-style extraction.
+            # LayoutLM/Donut both handle this question reasonably; users can
+            # override with anything more specific.
+            question = "What is the text content of this document?"
+
+        kwargs = {}
+        top_k = int(params.get("top_k", 1))
+        if top_k > 1:
+            kwargs["top_k"] = top_k
+
+        result = state.pipe(image=img, question=question, **kwargs)
+
+        # Pipeline returns either a single dict or a list — normalize.
+        if isinstance(result, dict):
+            return ok.text(result.get("answer") or "")
+        if isinstance(result, list) and result:
+            if top_k > 1:
+                # Show all candidates with their scores so users can compare.
+                lines = []
+                for r in result:
+                    a = (r.get("answer") or "").strip()
+                    if not a:
+                        continue
+                    s = r.get("score")
+                    lines.append(f"{a}    ({s:.2f})" if isinstance(s, (int, float)) else a)
+                return ok.text("\n".join(lines))
+            top = result[0]
+            return ok.text(top.get("answer") or "")
+        return ok.text("")
+
+
+class DocumentQATask(TaskHandler):
+    name = "document-question-answering"
+    output_kind = "text"
+    default_params = {"top_k": 1}
+    variants = [DocumentQAVariant()]

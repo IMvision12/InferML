@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LocalML</title>
+  <meta name="description"
+    content="Desktop app for running any Hugging Face model on your own machine. Detection, segmentation, classification, depth, OCR, SAM, VLMs, ASR, TTS, diffusion. All locally, no cloud, no upload." />
+  <meta property="og:title" content="LocalML. Run any Hugging Face model, locally." />
+  <meta property="og:description"
+    content="Browse. Download. Run. All local. Detection, segmentation, classification, depth, OCR, SAM, VLMs, ASR, TTS, diffusion. 200+ model families supported." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <link rel="stylesheet" href="styles.css?v=30" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+</head>
+
+<body>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="#top">
+        <svg class="brand-logo" viewBox="0 0 128 128" width="26" height="26">
+          <defs>
+            <linearGradient id="nav-bg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#1F2937" />
+              <stop offset="100%" stop-color="#0F172A" />
+            </linearGradient>
+          </defs>
+          <rect x="4" y="4" width="120" height="120" rx="26" fill="url(#nav-bg)" />
+          <g stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-opacity="0.85">
+            <line x1="32" y1="40" x2="60" y2="28" />
+            <line x1="60" y1="28" x2="88" y2="52" />
+            <line x1="88" y1="52" x2="54" y2="68" />
+            <line x1="54" y1="68" x2="40" y2="96" />
+            <line x1="88" y1="52" x2="96" y2="88" />
+          </g>
+          <g fill="#60a5fa">
+            <circle cx="32" cy="40" r="5" />
+            <circle cx="60" cy="28" r="4" />
+            <circle cx="88" cy="52" r="7" />
+            <circle cx="54" cy="68" r="5" />
+            <circle cx="96" cy="88" r="4" />
+            <circle cx="40" cy="96" r="5" />
+          </g>
+        </svg>
+        <span>LocalML</span>
+      </a>
+      <nav class="nav-links">
+        <a href="#models">Models</a>
+        <a href="#features">Features</a>
+        <a href="#install" class="nav-install">
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+            <path d="M12 3 L21.5 19.5 L2.5 19.5 Z" fill="#f59e0b" stroke="#f59e0b" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M12 9 V14" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="16.6" r="1.1" fill="#fff"/>
+          </svg>
+          Install
+        </a>
+      </nav>
+      <a href="https://github.com/IMvision12/localml-app" target="_blank" rel="noopener" class="nav-gh" aria-label="GitHub repository" title="GitHub">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+          <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.57.1.78-.25.78-.55 0-.27-.01-.99-.02-1.94-3.2.69-3.87-1.54-3.87-1.54-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.69 1.25 3.34.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.04 0 0 .97-.31 3.18 1.18.92-.26 1.91-.39 2.9-.39.99 0 1.98.13 2.9.39 2.21-1.49 3.18-1.18 3.18-1.18.62 1.58.23 2.75.11 3.04.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.41-5.25 5.69.41.36.78 1.06.78 2.13 0 1.54-.01 2.78-.01 3.16 0 .31.21.66.79.55C20.21 21.39 23.5 17.07 23.5 12 23.5 5.65 18.35.5 12 .5z"/>
+        </svg>
+        <span>GitHub</span>
+      </a>
+      <a href="#download" class="nav-cta">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3v12"/>
+          <path d="M7 10l5 5 5-5"/>
+          <path d="M5 21h14"/>
+        </svg>
+        Download
+      </a>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- Announcement banner -->
+    <section class="banner">
+      <span class="banner-badge">New</span>
+      <span>GPT-OSS · Janus-Pro · DeepSeek-VL · FastVLM · 200+ model families now supported.</span>
+      <a href="#models">Browse</a>
+    </section>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-aurora">
+        <div class="hero-aurora-mid"></div>
+      </div>
+      <div class="hero-stars" id="hero-stars"></div>
+      <h1 class="hero-h1">Open-source ML.<br /><span class="accent">Ready to run.</span></h1>
+      <p class="hero-sub">
+        Pick any model from the HuggingFace Hub. Install with one click.
+        <br />Detection, segmentation, VLMs, speech, diffusion, classification, depth, OCR, and more.
+        <br />Runs on CPU or GPU.
+      </p>
+
+      <div class="pills">
+        <span class="pill">DETR</span>
+        <span class="pill">SAM 2</span>
+        <span class="pill">SigLIP 2</span>
+        <span class="pill">InternVL</span>
+        <span class="pill">Whisper</span>
+        <span class="pill">FLUX</span>
+        <span class="pill">SegFormer</span>
+        <span class="pill">GPT-OSS</span>
+        <span class="pill">Pixtral</span>
+        <span class="pill">SDXL</span>
+      </div>
+
+      <div id="download" class="cta-block">
+        <a href="https://github.com/IMvision12/localml-app/releases/latest" target="_blank" rel="noopener" class="cta" id="cta-download">
+          <span class="cta-icon" id="cta-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M0 0h11v11H0zM13 0h11v11H13zM0 13h11v11H0zM13 13h11v11H13z" />
+            </svg>
+          </span>
+          <span class="cta-text" id="cta-text">Download for Windows</span>
+          <span class="cta-version" id="cta-version">latest</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- App screenshot (placeholder) -->
+    <section class="screenshot">
+      <div class="screenshot-frame">
+        <div class="screenshot-chrome">
+          <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+          <svg class="chrome-logo" viewBox="0 0 128 128" width="16" height="16" aria-hidden="true">
+            <defs>
+              <linearGradient id="chrome-logo-bg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#1F2937" />
+                <stop offset="100%" stop-color="#0F172A" />
+              </linearGradient>
+            </defs>
+            <rect x="4" y="4" width="120" height="120" rx="26" fill="url(#chrome-logo-bg)" />
+            <g stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-opacity="0.85">
+              <line x1="32" y1="40" x2="60" y2="28" />
+              <line x1="60" y1="28" x2="88" y2="52" />
+              <line x1="88" y1="52" x2="54" y2="68" />
+              <line x1="54" y1="68" x2="40" y2="96" />
+              <line x1="88" y1="52" x2="96" y2="88" />
+            </g>
+            <g fill="#60a5fa">
+              <circle cx="32" cy="40" r="5" />
+              <circle cx="60" cy="28" r="4" />
+              <circle cx="88" cy="52" r="7" />
+              <circle cx="54" cy="68" r="5" />
+              <circle cx="96" cy="88" r="4" />
+              <circle cx="40" cy="96" r="5" />
+            </g>
+          </svg>
+          <span class="chrome-title">LocalML</span>
+          <div class="chrome-spacer"></div>
+          <span class="chrome-pill chrome-pill-warn">
+            <span class="chrome-pill-ic">⚠</span>
+            <span>Setup Python runtime</span>
+          </span>
+          <span class="chrome-pill chrome-pill-update">
+            <span class="chrome-pill-ic">→</span>
+            <span>Update available · v0.3.2</span>
+          </span>
+          <span class="chrome-pill chrome-pill-installed">
+            <span class="chrome-pill-dot is-ok"></span>
+            <span>5 local models</span>
+          </span>
+          <div class="chrome-stats">
+            <span>GPU: 0.01 / 8.00 GB</span>
+            <span class="chrome-sep">|</span>
+            <span>RAM: 9.08 / 15.71 GB</span>
+            <span class="chrome-sep">|</span>
+            <span>CPU: 24.00 %</span>
+          </div>
+        </div>
+        <div class="screenshot-content">
+          <div class="scr-sidebar">
+            <div class="scr-nav">
+              <div class="scr-nav-btn active">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 11.5 12 4l9 7.5"/>
+                  <path d="M5 10v10h14V10"/>
+                </svg>
+                <span>Home</span>
+              </div>
+              <div class="scr-nav-btn">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+                <span>Installed only</span>
+              </div>
+            </div>
+            <div class="scr-section">
+              <div class="scr-label">Recents</div>
+              <div class="scr-item active">
+                <div class="scr-t1">detr-resnet-50</div>
+                <div class="scr-t2">Object detection · 2m</div>
+              </div>
+              <div class="scr-item">
+                <div class="scr-t1">sam2-hiera-large</div>
+                <div class="scr-t2">Mask generation · 1h</div>
+              </div>
+              <div class="scr-item">
+                <div class="scr-t1">Qwen2.5-VL-3B-Instruct</div>
+                <div class="scr-t2">Image-text-to-text · 3h</div>
+              </div>
+              <div class="scr-item">
+                <div class="scr-t1">segformer-b5-cityscapes</div>
+                <div class="scr-t2">Segmentation · yesterday</div>
+              </div>
+            </div>
+          </div>
+          <div class="scr-main">
+            <div class="scr-eyebrow">TUESDAY, MAY 5</div>
+            <div class="scr-title">What would you like to run today?</div>
+            <div class="scr-sub">Pick from your library, browse the Hub, or paste a model id.</div>
+            <div class="scr-search-row">
+              <div class="scr-search-bar"><span class="scr-icon">⌕</span>Search a task, family, or paste an HF id…</div>
+            </div>
+            <div class="scr-pills">
+              <span class="scr-pill active">All</span>
+              <span class="scr-pill">VLM</span>
+              <span class="scr-pill">Text</span>
+              <span class="scr-pill">Segmentation</span>
+              <span class="scr-pill">SAM</span>
+              <span class="scr-pill">Detection</span>
+              <span class="scr-pill">Classify</span>
+              <span class="scr-pill">Diffusion</span>
+              <span class="scr-pill">Depth</span>
+              <span class="scr-pill">Docs / OCR</span>
+              <span class="scr-pill">ASR</span>
+              <span class="scr-pill">TTS</span>
+            </div>
+            <div class="scr-cols">
+              <div class="scr-col">
+                <div class="scr-col-label">INSTALLED · 5</div>
+                <ul class="scr-list">
+                  <li class="scr-row">
+                    <div class="scr-row-l">
+                      <div class="scr-row-nm">Florence-2-base</div>
+                      <div class="scr-row-meta">microsoft · image-text-to-text</div>
+                    </div>
+                    <div class="scr-row-r">462 MB</div>
+                  </li>
+                  <li class="scr-row">
+                    <div class="scr-row-l">
+                      <div class="scr-row-nm">whisper-tiny</div>
+                      <div class="scr-row-meta">openai · automatic-speech-recognition</div>
+                    </div>
+                    <div class="scr-row-r">150 MB</div>
+                  </li>
+                  <li class="scr-row">
+                    <div class="scr-row-l">
+                      <div class="scr-row-nm">detr-resnet-50</div>
+                      <div class="scr-row-meta">facebook · object-detection</div>
+                    </div>
+                    <div class="scr-row-r">165 MB</div>
+                  </li>
+                  <li class="scr-row">
+                    <div class="scr-row-l">
+                      <div class="scr-row-nm">segformer-b0-ade-512</div>
+                      <div class="scr-row-meta">nvidia · image-segmentation</div>
+                    </div>
+                    <div class="scr-row-r">14 MB</div>
+                  </li>
+                  <li class="scr-row">
+                    <div class="scr-row-l">
+                      <div class="scr-row-nm">Llama-3.2-1B-Instruct</div>
+                      <div class="scr-row-meta">meta-llama · text-generation</div>
+                    </div>
+                    <div class="scr-row-r">2.5 GB</div>
+                  </li>
+                </ul>
+              </div>
+              <div class="scr-col">
+                <div class="scr-col-label">SUGGESTED FOR YOU</div>
+                <ul class="scr-list">
+                  <li class="scr-row">
+                    <div class="scr-row-l">
+                      <div class="scr-row-nm">InternVL2_5-1B</div>
+                      <div class="scr-row-meta">OpenGVLab · image-text-to-text</div>
+                    </div>
+                    <div class="scr-row-r">↓ 1.9 GB</div>
+                  </li>
+                  <li class="scr-row">
+                    <div class="scr-row-l">
+                      <div class="scr-row-nm">SmolLM3-3B</div>
+                      <div class="scr-row-meta">HuggingFaceTB · text-generation</div>
+                    </div>
+                    <div class="scr-row-r">↓ 6.0 GB</div>
+                  </li>
+                  <li class="scr-row">
+                    <div class="scr-row-l">
+                      <div class="scr-row-nm">sam2.1-hiera-tiny</div>
+                      <div class="scr-row-meta">facebook · mask-generation</div>
+                    </div>
+                    <div class="scr-row-r">↓ 150 MB</div>
+                  </li>
+                  <li class="scr-row">
+                    <div class="scr-row-l">
+                      <div class="scr-row-nm">stable-diffusion-xl-base-1.0</div>
+                      <div class="scr-row-meta">stabilityai · text-to-image</div>
+                    </div>
+                    <div class="scr-row-r">↓ 6.9 GB</div>
+                  </li>
+                  <li class="scr-row">
+                    <div class="scr-row-l">
+                      <div class="scr-row-nm">bark-small</div>
+                      <div class="scr-row-meta">suno · text-to-speech</div>
+                    </div>
+                    <div class="scr-row-r">↓ 1.2 GB</div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Live example: DETR-ResNet-50 object detection on a real photo -->
+    <section class="demo">
+      <div class="section-head">
+        <h2>See it in action.</h2>
+        <p>Three different models, three different tasks, all running locally on the same machine.</p>
+      </div>
+      <div class="demo-frame">
+        <figure class="demo-side">
+          <div class="demo-img-wrap">
+            <img src="assets/example-detr-input.webp" alt="Input photo" loading="lazy"/>
+          </div>
+          <figcaption>
+            <span class="demo-tag">input</span>
+            <span class="demo-cap">a photo from your disk</span>
+          </figcaption>
+        </figure>
+        <div class="demo-arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M13 5l7 7-7 7"/>
+          </svg>
+        </div>
+        <figure class="demo-side">
+          <div class="demo-img-wrap">
+            <img src="assets/example-detr-output.png" alt="Detection output with bounding boxes" loading="lazy"/>
+          </div>
+          <figcaption>
+            <span class="demo-tag accent">output</span>
+            <span class="demo-cap">bounding boxes &amp; labels</span>
+          </figcaption>
+        </figure>
+      </div>
+      <div class="demo-meta mono">
+        facebook/detr-resnet-50 · object-detection · 167 MB · runs on CPU or GPU
+      </div>
+    </section>
+
+    <!-- Live example: SAM mask generation on the same photo -->
+    <section class="demo demo-tight">
+      <div class="demo-frame">
+        <figure class="demo-side">
+          <div class="demo-img-wrap">
+            <img src="assets/example-sam-input.png" alt="Input photo" loading="lazy"/>
+          </div>
+          <figcaption>
+            <span class="demo-tag">input</span>
+            <span class="demo-cap">the same photo</span>
+          </figcaption>
+        </figure>
+        <div class="demo-arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M13 5l7 7-7 7"/>
+          </svg>
+        </div>
+        <figure class="demo-side">
+          <div class="demo-img-wrap">
+            <img src="assets/example-sam-output.png" alt="Segmentation masks output" loading="lazy"/>
+          </div>
+          <figcaption>
+            <span class="demo-tag accent">output</span>
+            <span class="demo-cap">per-pixel masks</span>
+          </figcaption>
+        </figure>
+      </div>
+      <div class="demo-meta mono">
+        facebook/sam-vit-base · mask-generation · 375 MB · runs on CPU or GPU
+      </div>
+    </section>
+
+    <!-- Live example: MMS-TTS text-to-speech -->
+    <section class="demo demo-tight">
+      <div class="demo-frame">
+        <figure class="demo-side">
+          <div class="demo-text-card">
+            <div class="demo-text-quote">&ldquo;Hi, how are you? How&rsquo;s your day going?&rdquo;</div>
+          </div>
+          <figcaption>
+            <span class="demo-tag">prompt</span>
+            <span class="demo-cap">your text</span>
+          </figcaption>
+        </figure>
+        <div class="demo-arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M13 5l7 7-7 7"/>
+          </svg>
+        </div>
+        <figure class="demo-side">
+          <div class="demo-audio-card">
+            <div class="demo-audio-bars" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <audio controls preload="metadata" class="demo-audio-player">
+              <source src="assets/example-tts-output.wav" type="audio/wav"/>
+              Your browser does not support audio playback.
+            </audio>
+          </div>
+          <figcaption>
+            <span class="demo-tag accent">audio</span>
+            <span class="demo-cap">press play</span>
+          </figcaption>
+        </figure>
+      </div>
+      <div class="demo-meta mono">
+        facebook/mms-tts-eng · text-to-speech · 145 MB · runs on CPU or GPU
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="features">
+      <div class="section-head">
+        <h2>Not just LLMs.</h2>
+        <p>Eleven task workspaces. Every major modality.</p>
+      </div>
+      <div class="feat-grid">
+        <div class="feat">
+          <div class="feat-ic">⊡</div>
+          <h3>Detection</h3>
+          <p>DETR, YOLOS, RT-DETR, D-FINE, Table Transformer. Draws labeled boxes server-side.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-ic">◉</div>
+          <h3>Segmentation</h3>
+          <p>SegFormer, Mask2Former, OneFormer, EoMT. Panoptic, instance, semantic. Composited overlays.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-ic">✦</div>
+          <h3>Mask generation</h3>
+          <p>SAM v1, SAM 2, SAM 2.1, SAM 3. Auto grid-sampling mode, full multi-region output.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-ic">☰</div>
+          <h3>VLMs</h3>
+          <p>Qwen-VL, LLaVA, Florence-2, Moondream, PaliGemma. Ask anything about an image.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-ic">♪</div>
+          <h3>Speech</h3>
+          <p>Whisper, Wav2Vec2, MMS for ASR. SpeechT5, Bark, VITS for TTS. Both directions, long-audio aware.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-ic">◈</div>
+          <h3>Classification</h3>
+          <p>ViT, ResNet, ConvNeXt, BEiT, SigLIP, CLIP. Image, zero-shot, audio. Confidence-ranked labels.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-ic">❋</div>
+          <h3>Diffusion</h3>
+          <p>Stable Diffusion, SDXL, FLUX, Kandinsky, PixArt. Text-to-image, img2img, inpaint.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-ic">⌨</div>
+          <h3>Text generation</h3>
+          <p>Llama, Mistral, Qwen, Gemma, Phi, DeepSeek. Chat-template aware, reasoning-model aware.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-ic">◐</div>
+          <h3>Depth</h3>
+          <p>DPT, MiDaS, ZoeDepth, Depth Anything v1/v2, Depth Pro. Single image → colorized depth map.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-ic">▤</div>
+          <h3>Documents · OCR</h3>
+          <p>TrOCR, Donut, LayoutLMv3, Pix2Struct. Read scanned pages, receipts, forms. Ask questions about them.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Models -->
+    <section id="models" class="models">
+      <div class="section-head">
+        <h2>Everything in the Hub, ready to run.</h2>
+        <p>200+ model families, each one verified against our architecture whitelist. If it shows up in LocalML, it
+          loads. No broken downloads, no missing packages, no guesswork.</p>
+      </div>
+      <div class="model-families">
+        <div class="mf">
+          <h4>Detection</h4>
+          <code>DETR</code><code>YOLOS</code><code>RT-DETR</code><code>RT-DETRv2</code><code>D-FINE</code><code>Conditional-DETR</code><code>Deformable-DETR</code><code>Table-Transformer</code><code>OWL-ViT</code><code>OWLv2</code><code>Grounding-DINO</code>
+        </div>
+        <div class="mf">
+          <h4>Segmentation</h4>
+          <code>SegFormer</code><code>MaskFormer</code><code>Mask2Former</code><code>OneFormer</code><code>EoMT</code><code>UperNet</code><code>BEiT</code><code>DPT</code><code>DETR-panoptic</code><code>MobileViT</code>
+        </div>
+        <div class="mf">
+          <h4>Mask generation</h4>
+          <code>SAM</code><code>SAM 2</code><code>SAM 2.1</code><code>SAM 3</code><code>MedSAM</code>
+        </div>
+        <div class="mf">
+          <h4>VLMs</h4>
+          <code>Qwen-VL</code><code>Qwen2.5-VL</code><code>Qwen3-VL</code><code>LLaVA</code><code>LLaVA-Next</code><code>ViP-LLaVA</code><code>Florence-2</code><code>Moondream</code><code>PaliGemma</code><code>Idefics 2/3</code><code>SmolVLM</code><code>Kosmos-2</code><code>InternVL</code><code>Pixtral</code><code>FastVLM</code><code>LFM2-VL</code><code>DeepSeek-VL</code><code>Janus-Pro</code><code>Fuyu</code><code>Ovis</code><code>Aria</code><code>GLM4V</code><code>Cohere2-Vision</code><code>Emu3</code>
+        </div>
+        <div class="mf">
+          <h4>Text generation</h4>
+          <code>Llama 3/4</code><code>GPT-OSS</code><code>Mistral 3</code><code>Qwen 2/3</code><code>Gemma 2/3/3n</code><code>Phi 3/4</code><code>DeepSeek</code><code>SmolLM3</code><code>OLMo 3</code><code>OLMoE</code><code>Falcon-H1</code><code>Nemotron-H</code><code>BitNet</code><code>StarCoder 2</code><code>Cohere</code><code>Granite</code><code>MiniMax</code>
+        </div>
+        <div class="mf">
+          <h4>ASR · TTS</h4>
+          <code>Whisper</code><code>Distil-Whisper</code><code>Wav2Vec2</code><code>MMS</code><code>Moonshine</code><code>Parakeet</code><code>SpeechT5</code><code>Bark</code><code>VITS</code>
+        </div>
+        <div class="mf">
+          <h4>Diffusion</h4>
+          <code>SD 1.5</code><code>SD 2.1</code><code>SDXL</code><code>SD 3 / 3.5</code><code>FLUX.1</code><code>Kandinsky</code><code>PixArt</code><code>Sana</code><code>Kolors</code>
+        </div>
+        <div class="mf">
+          <h4>Classification</h4>
+          <code>ViT</code><code>DeiT</code><code>Swin</code><code>ConvNeXt</code><code>BEiT</code><code>ResNet</code><code>EfficientNet</code><code>MobileNet</code><code>CLIP</code><code>SigLIP</code><code>SigLIP 2</code>
+        </div>
+        <div class="mf">
+          <h4>Depth</h4>
+          <code>DPT</code><code>GLPN</code><code>ZoeDepth</code><code>Depth Anything</code><code>Depth Anything v2</code><code>Depth Pro</code><code>MiDaS</code>
+        </div>
+        <div class="mf">
+          <h4>Documents · OCR</h4>
+          <code>TrOCR</code><code>Donut</code><code>LayoutLM</code><code>LayoutLMv2</code><code>LayoutLMv3</code><code>Pix2Struct</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- Platforms -->
+    <section id="platforms" class="platforms">
+      <div class="section-head">
+        <h2>Runs everywhere you do.</h2>
+        <p>Native installers for Windows, macOS, and Linux. CUDA · Apple MPS · CPU.</p>
+      </div>
+      <div class="plat-grid">
+        <a class="plat" href="https://github.com/IMvision12/localml-app/releases/latest" target="_blank" rel="noopener" data-plat="windows" id="plat-windows">
+          <div class="plat-ic">
+            <svg viewBox="0 0 24 24" aria-label="Windows">
+              <path fill="#00A4EF" d="M0 3.449 9.75 2.1v9.451H0" />
+              <path fill="#00A4EF" d="M10.949 1.94 23.99 0v11.4H10.949" />
+              <path fill="#00A4EF" d="M0 12.6h9.75v9.451L0 20.699" />
+              <path fill="#00A4EF" d="M10.949 12.6H24V24l-13.051-1.9" />
+            </svg>
+          </div>
+          <div class="plat-name">Windows</div>
+          <div class="plat-meta">x64 · CUDA 12.4</div>
+        </a>
+        <a class="plat" href="https://github.com/IMvision12/localml-app/releases/latest" target="_blank" rel="noopener" data-plat="mac" id="plat-mac">
+          <div class="plat-ic">
+            <svg viewBox="0 0 24 24" aria-label="Apple">
+              <path fill="currentColor"
+                d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.74 1.18 0 2.5-.82 3.83-.7 1.5.12 2.65.72 3.4 1.8-3.09 1.85-2.35 5.92.48 7.07-.56 1.48-1.29 2.96-2.73 4.05h-.06zm-5.11-14.34c-.09-2.5 2.03-4.6 4.36-4.65.24 2.83-2.64 4.79-4.36 4.65" />
+            </svg>
+          </div>
+          <div class="plat-name">macOS</div>
+          <div class="plat-meta">Apple Silicon · Intel</div>
+        </a>
+        <a class="plat" href="https://github.com/IMvision12/localml-app/releases/latest" target="_blank" rel="noopener" data-plat="linux" id="plat-linux">
+          <div class="plat-ic">
+            <svg viewBox="0 0 32 32" aria-label="Tux">
+              <!-- body -->
+              <path fill="#1e1e1e"
+                d="M16 4c-3.6 0-5.5 2.6-5.5 5.6 0 1.5.5 2.4.5 2.4-1.2 1.2-2.9 2.9-3.4 4.9-.4 1.7.1 3.1.8 4 .6.7 1.5 1 2.1.6.6-.4.5-1.3.5-1.3-.4-2 .9-3.1 1.7-3.8.4-.4.9-.8 1.3-1.4.4.6.9 1 1.3 1.4.8.7 2.1 1.8 1.7 3.8 0 0-.1.9.5 1.3.6.4 1.5.1 2.1-.6.7-.9 1.2-2.3.8-4-.5-2-2.2-3.7-3.4-4.9 0 0 .5-.9.5-2.4C21.5 6.6 19.6 4 16 4z" />
+              <!-- belly -->
+              <ellipse cx="16" cy="18" rx="3.2" ry="4.2" fill="#f2f2f2" />
+              <!-- eyes white -->
+              <ellipse cx="13.6" cy="10.2" rx="1.6" ry="2" fill="#ffffff" />
+              <ellipse cx="18.4" cy="10.2" rx="1.6" ry="2" fill="#ffffff" />
+              <!-- pupils -->
+              <circle cx="13.9" cy="10.4" r="0.7" fill="#1e1e1e" />
+              <circle cx="18.1" cy="10.4" r="0.7" fill="#1e1e1e" />
+              <!-- beak -->
+              <path fill="#f9a825" d="M16 11.8l-1.6 1.4 1.6 0.6 1.6-0.6z" />
+              <!-- feet -->
+              <ellipse cx="13" cy="23" rx="2.2" ry="1.2" fill="#f9a825" />
+              <ellipse cx="19" cy="23" rx="2.2" ry="1.2" fill="#f9a825" />
+            </svg>
+          </div>
+          <div class="plat-name">Linux</div>
+          <div class="plat-meta">x64 · CUDA 12.4 · CPU</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- First-launch warnings: the app isn't code-signed yet, so each OS will
+         pop a "this is unsafe" dialog on first run. Tell users what to expect
+         so they don't think the binary is malware. -->
+    <section id="install" class="install-notes">
+      <div class="section-head">
+        <h2>First launch.</h2>
+        <p>LocalML isn't code-signed yet. Your OS will warn you on first run. Here's what to expect.</p>
+      </div>
+      <div class="notes-grid">
+        <div class="note">
+          <div class="note-head">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-label="Windows">
+              <path fill="#00A4EF" d="M0 3.449 9.75 2.1v9.451H0"/>
+              <path fill="#00A4EF" d="M10.949 1.94 23.99 0v11.4H10.949"/>
+              <path fill="#00A4EF" d="M0 12.6h9.75v9.451L0 20.699"/>
+              <path fill="#00A4EF" d="M10.949 12.6H24V24l-13.051-1.9"/>
+            </svg>
+            <span>Windows</span>
+          </div>
+          <p>SmartScreen will show a blue <b>"Windows protected your PC"</b> screen.
+            Click <b>More info</b>, then <b>Run anyway</b>.</p>
+        </div>
+        <div class="note">
+          <div class="note-head">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-label="Apple">
+              <path fill="currentColor" d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.74 1.18 0 2.5-.82 3.83-.7 1.5.12 2.65.72 3.4 1.8-3.09 1.85-2.35 5.92.48 7.07-.56 1.48-1.29 2.96-2.73 4.05h-.06zm-5.11-14.34c-.09-2.5 2.03-4.6 4.36-4.65.24 2.83-2.64 4.79-4.36 4.65"/>
+            </svg>
+            <span>macOS</span>
+          </div>
+          <p>Gatekeeper will say <b>"LocalML is damaged"</b> or <b>"cannot be opened"</b>.
+            In Terminal, run <code>sudo xattr -dr com.apple.quarantine /Applications/LocalML.app</code> and enter your password.
+            Or right-click the app in Finder, pick <b>Open</b>, then click <b>Open</b> again in the dialog.</p>
+        </div>
+        <div class="note">
+          <div class="note-head">
+            <svg viewBox="0 0 32 32" width="18" height="18" aria-label="Tux">
+              <path fill="#1e1e1e" d="M16 4c-3.6 0-5.5 2.6-5.5 5.6 0 1.5.5 2.4.5 2.4-1.2 1.2-2.9 2.9-3.4 4.9-.4 1.7.1 3.1.8 4 .6.7 1.5 1 2.1.6.6-.4.5-1.3.5-1.3-.4-2 .9-3.1 1.7-3.8.4-.4.9-.8 1.3-1.4.4.6.9 1 1.3 1.4.8.7 2.1 1.8 1.7 3.8 0 0-.1.9.5 1.3.6.4 1.5.1 2.1-.6.7-.9 1.2-2.3.8-4-.5-2-2.2-3.7-3.4-4.9 0 0 .5-.9.5-2.4C21.5 6.6 19.6 4 16 4z"/>
+              <ellipse cx="16" cy="18" rx="3.2" ry="4.2" fill="#f2f2f2"/>
+              <ellipse cx="13.6" cy="10.2" rx="1.6" ry="2" fill="#ffffff"/>
+              <ellipse cx="18.4" cy="10.2" rx="1.6" ry="2" fill="#ffffff"/>
+              <circle cx="13.9" cy="10.4" r="0.7" fill="#1e1e1e"/>
+              <circle cx="18.1" cy="10.4" r="0.7" fill="#1e1e1e"/>
+              <path fill="#f9a825" d="M16 11.8l-1.6 1.4 1.6 0.6 1.6-0.6z"/>
+              <ellipse cx="13" cy="23" rx="2.2" ry="1.2" fill="#f9a825"/>
+              <ellipse cx="19" cy="23" rx="2.2" ry="1.2" fill="#f9a825"/>
+            </svg>
+            <span>Linux</span>
+          </div>
+          <p>Make the AppImage executable: <code>chmod +x LocalML-*.AppImage</code>,
+            then double-click or run it from your terminal.</p>
+        </div>
+      </div>
+      <p class="install-notes-foot">
+        Code signing on Windows and macOS costs hundreds per year. We'll add it once the project can sustain it.
+      </p>
+    </section>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <svg viewBox="0 0 128 128" width="22" height="22">
+            <defs>
+              <linearGradient id="ft-bg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#1F2937" />
+                <stop offset="100%" stop-color="#0F172A" />
+              </linearGradient>
+            </defs>
+            <rect x="4" y="4" width="120" height="120" rx="26" fill="url(#ft-bg)" />
+            <g stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-opacity="0.85">
+              <line x1="32" y1="40" x2="60" y2="28" />
+              <line x1="60" y1="28" x2="88" y2="52" />
+              <line x1="88" y1="52" x2="54" y2="68" />
+              <line x1="54" y1="68" x2="40" y2="96" />
+              <line x1="88" y1="52" x2="96" y2="88" />
+            </g>
+            <g fill="#60a5fa">
+              <circle cx="32" cy="40" r="5" />
+              <circle cx="60" cy="28" r="4" />
+              <circle cx="88" cy="52" r="7" />
+              <circle cx="54" cy="68" r="5" />
+              <circle cx="96" cy="88" r="4" />
+              <circle cx="40" cy="96" r="5" />
+            </g>
+          </svg>
+          <span>LocalML</span>
+        </div>
+        <div class="footer-links">
+          <a href="https://github.com/IMvision12/localml-app" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/IMvision12/localml-app/releases" target="_blank" rel="noopener">Releases</a>
+          <a href="https://github.com/IMvision12/localml-app/issues" target="_blank" rel="noopener">Issues</a>
+          <a href="https://github.com/IMvision12/localml-app/blob/main/LICENSE" target="_blank" rel="noopener">License</a>
+        </div>
+        <div class="footer-sub">
+          MIT licensed. Built on Electron, transformers, diffusers, PyTorch.
+        </div>
+      </div>
+    </footer>
+
+  </main>
+
+  <script src="script.js?v=4"></script>
+</body>
+
+</html>

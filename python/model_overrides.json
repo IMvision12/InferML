@@ -1,0 +1,32 @@
+{
+  "_schema": {
+    "description": "Per-model override table. Sparse. only add entries for models the router doesn't route correctly by itself. Each key is a HuggingFace repo id.",
+    "fields": {
+      "adapter":            "optional string. force a specific adapter by name. Valid: 'standard', 'diffusers', or any folder name under python/models/ (e.g. 'florence2', 'janus', 'qwen_vl', 'llava', 'moondream', 'fastvlm', 'detr', 'sam', etc.)",
+      "trust_remote_code":  "optional bool. pass to HF loaders for repos that ship custom modeling files",
+      "params":             "optional object. default params merged before request params (e.g. {max_new_tokens: 512})",
+      "notes":              "optional string for humans"
+    }
+  },
+  "overrides": {
+    "microsoft/Florence-2-large": {
+      "adapter": "florence2",
+      "trust_remote_code": true,
+      "params": { "florence_task": "<CAPTION>" },
+      "notes": "Default task token; change florence_task per call for <OD>, <DETAILED_CAPTION>, etc."
+    },
+    "microsoft/Florence-2-base": {
+      "adapter": "florence2",
+      "trust_remote_code": true
+    },
+    "vikhyatk/moondream2": {
+      "adapter": "moondream",
+      "trust_remote_code": true
+    },
+    "stepfun-ai/GOT-OCR2_0": {
+      "adapter": "got_ocr2",
+      "trust_remote_code": true,
+      "notes": "Original repo declares model_type 'GOT' (not 'got_ocr2') and ships custom modeling code."
+    }
+  }
+}
