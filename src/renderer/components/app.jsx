@@ -23,7 +23,6 @@ function App() {
   const [sessions, setSessions] = useState([]);
   const [hw, setHw] = useState(null);
   const [installedModels, setInstalledModels] = useState({});
-  const [maximized, setMaximized] = useState(false);
   const [version, setVersion] = useState('0.1.0');
 
 
@@ -201,11 +200,6 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    const unsub = window.inferml?.window.onState(s => setMaximized(!!s?.maximized));
-    window.inferml?.window.isMaximized().then(m => setMaximized(!!m));
-    return () => { if (unsub) unsub(); };
-  }, []);
 
 
 
@@ -388,13 +382,6 @@ function App() {
               <button className="tb-btn" onClick={() => openSettings()} title="Settings"><Icon name="settings" size={12}/></button>
             </div>
           )}
-          <div className="tb-win-controls no-drag">
-            <div className="tb-wc" onClick={() => window.inferml?.window.minimize()}><Icon name="min" size={12} stroke={1.2}/></div>
-            <div className="tb-wc" onClick={() => window.inferml?.window.maximize()}>
-              <Icon name={maximized ? 'restore' : 'max'} size={10} stroke={1.2}/>
-            </div>
-            <div className="tb-wc close" onClick={() => window.inferml?.window.close()}><Icon name="close" size={12} stroke={1.2}/></div>
-          </div>
         </div>
 
         <div className="app-body">
