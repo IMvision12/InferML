@@ -1,6 +1,6 @@
 // LocalML landing page - interactions.
 //
-// LocalML installs from PyPI (`pipx install localml`) and runs as a local web
+// LocalML installs from PyPI (`pipx install localml-app`) and runs as a local web
 // server, so there are no OS-specific installers to fetch. This script wires up
 // the copy-to-clipboard command blocks, highlights the visitor's own platform
 // card, and runs the ambient scroll / hero effects.

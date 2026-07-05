@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "localml"
+name = "localml-app"
 version = "1.0.0"
 description = "Any HuggingFace model. Local. Multi-modal. Served over an OpenAI-compatible API."
 readme = "README.md"
@@ -13,7 +13,7 @@ authors = [{ name = "LocalML" }]
 keywords = ["huggingface", "transformers", "inference", "openai", "local", "llm", "diffusion"]
 
 # The web server layer. The inference stack (torch, transformers, diffusers, …)
-# is declared in the `inference` extra so `pipx install localml` stays fast and
+# is declared in the `inference` extra so `pipx install localml-app` stays fast and
 # the heavy, hardware-specific torch wheels can be pinned to the right index by
 # the user. Phase 5 finalizes the CPU/GPU install story and bundles the built
 # frontend as package data.

@@ -30,7 +30,7 @@ curl -fsSL https://www.localml.tech/install.sh | sh
 
 Each script **requires an existing Python 3.10+** (it does *not* install Python -
 if it's missing the script prints where to get it and stops), then bootstraps
-pipx and runs `pipx install localml` (server only). The inference stack
+pipx and runs `pipx install localml-app` (server only). The inference stack
 (PyTorch + transformers) is installed **inside the app** on first launch, once
 the user picks CPU or GPU - so the script stays fast and hardware-agnostic.
 

@@ -60,7 +60,7 @@ function generateHtml() {
 
   // Vendor the browser runtime deps (react, react-dom, marked, dompurify) so
   // the built frontend is self-contained and needs no node_modules at runtime
-  // - required for the Node-free `pipx install localml` web server. Each
+  // - required for the Node-free `pipx install localml-app` web server. Each
   // `../../node_modules/<pkg>/<path>/<file>` script src is rewritten to
   // `/vendor/<file>`, and the files themselves are copied by copyVendorAssets().
   html = html.replace(
