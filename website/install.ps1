@@ -56,11 +56,16 @@ Install Python first - https://www.python.org/downloads/
   # --- install InferML (server only; the app installs the CPU/GPU stack on first
   #     launch, so we don't pull torch here) --------------------------------------
   Info 'Installing the InferML server...'
-  # Stream pipx's output (stdout + stderr) as plain text - pipx prints
-  # "creating virtual environment..." to stderr, which PowerShell 5.1 would
-  # otherwise show as a red error even on a successful install.
-  & $py -m pipx install inferml --force 2>&1 | ForEach-Object { Write-Host "$_" }
+  # Install if missing, then upgrade to latest if it was already there. We do
+  # NOT use `pipx install --force`: with the uv backend it fails to clear an
+  # existing venv ("A virtual environment already exists"). install + upgrade
+  # covers fresh installs and updates without recreating the venv, on both the
+  # uv and pip backends.
+  # Output is streamed through Write-Host so pipx's stderr progress lines render
+  # as plain text, not red NativeCommandError records (Windows PowerShell 5.1).
+  & $py -m pipx install inferml 2>&1 | ForEach-Object { Write-Host "$_" }
   if ($LASTEXITCODE -ne 0) { Write-Host 'Install failed. See the output above.' -ForegroundColor Red; return }
+  & $py -m pipx upgrade inferml 2>&1 | ForEach-Object { Write-Host "$_" }
 
   Write-Host ''
   Ok 'InferML is installed.'

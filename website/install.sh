@@ -51,8 +51,12 @@ fi
 # --- install InferML (server only; the app installs the CPU/GPU stack on first
 #     launch, so we don't pull torch here) --------------------------------------
 info "Installing the InferML server..."
-"$PY" -m pipx install inferml --force \
+# Install if missing, then upgrade if already present. Avoids `pipx install
+# --force`, which with the uv backend fails to clear an existing venv. This
+# covers both fresh installs and updates without recreating the venv.
+"$PY" -m pipx install inferml \
   || die "Install failed. See the output above."
+"$PY" -m pipx upgrade inferml || true
 
 printf '\n'
 ok "InferML is installed."
