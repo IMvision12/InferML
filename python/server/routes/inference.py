@@ -24,20 +24,14 @@ from server.events import EventHub
 
 router = APIRouter(prefix="/api")
 
-# modelId -> threading.Event for the in-flight download (cancellation).
 _ACTIVE_DOWNLOADS: dict[str, threading.Event] = {}
 
-# The inference stack that makes ALL model families runnable. `ready` requires
-# every one of these importable - a bare `pipx install localml` (no [inference]
-# extra) has none of them, so the onboarding shows and offers to install them.
 _FULL_STACK = [
     "torch", "transformers", "PIL", "numpy", "huggingface_hub",
     "soundfile", "librosa", "accelerate", "timm", "diffusers",
     "sentencepiece", "scipy",
 ]
 
-# The inference deps installed by /api/setup (torch is handled separately so it
-# can come from the accelerator-matched index).
 _INFERENCE_PKGS = [
     "transformers>=5.7.0", "diffusers", "accelerate", "timm", "pillow",
     "soundfile", "librosa", "numpy", "scipy", "sentencepiece", "protobuf",
@@ -45,7 +39,6 @@ _INFERENCE_PKGS = [
 ]
 
 _setup_running = False
-
 
 @router.post("/run")
 async def run(payload: dict = Body(...)):
@@ -70,7 +63,6 @@ async def run(payload: dict = Body(...)):
             print("[run] " + traceback.format_exc())
             return {"ok": False, "error": msg}
 
-
 @router.post("/download")
 async def download(payload: dict = Body(...)):
     model_id = payload.get("modelId")
@@ -83,7 +75,6 @@ async def download(payload: dict = Body(...)):
     _ACTIVE_DOWNLOADS[model_id] = cancel_event
 
     def on_progress(evt: dict) -> None:
-        # Called from the worker thread - hop back to the loop thread.
         loop.call_soon_threadsafe(queue.put_nowait, {"type": "progress", **evt})
 
     def worker():
@@ -114,7 +105,6 @@ async def download(payload: dict = Body(...)):
     return StreamingResponse(stream(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
-
 @router.post("/download/cancel")
 async def cancel_download(payload: dict = Body(...)):
     model_id = payload.get("modelId")
@@ -126,19 +116,16 @@ async def cancel_download(payload: dict = Body(...)):
              event="download.cancel", meta={"modelId": model_id})
     return {"ok": True, "cancelled": True}
 
-
 @router.post("/stop")
 async def stop():
     deps.request_stop()
     deps.log("inference", "User requested stop", level="warn", event="inference.stop.request")
     return {"ok": True}
 
-
 @router.get("/models")
 async def models():
     eng = deps.engine()
     return {"loaded": eng.loaded_model_ids(), "currentLlm": eng.current_llm_id()}
-
 
 @router.post("/models/load")
 async def load_model(payload: dict = Body(...)):
@@ -153,20 +140,17 @@ async def load_model(payload: dict = Body(...)):
         except Exception as e:
             return {"ok": False, "error": actionable_error(e)}
 
-
 @router.post("/models/unload")
 async def unload_model(payload: dict = Body(default={})):
     model_id = (payload or {}).get("modelId")
     n = deps.engine().unload(model_id)
     return {"ok": True, "unloaded": n}
 
-
 @router.get("/status")
 async def status():
     """Server-is-the-runtime status. Fast (no torch import): readiness via
     find_spec, accelerator via nvidia-smi/platform heuristics."""
     return _probe_status()
-
 
 def _probe_status() -> dict:
     import importlib.util
@@ -196,7 +180,6 @@ def _probe_status() -> dict:
         hf_cache = os.environ.get("HF_HOME") or str(Path.home() / ".cache" / "huggingface")
 
     return {
-        # In the pipx model the running server IS the runtime.
         "ready": ready,
         "runtimeInstalled": ready,
         "missing": missing,
@@ -213,7 +196,6 @@ def _probe_status() -> dict:
         "sidecarRunning": True,
     }
 
-
 def _torch_index(accelerator: str) -> tuple[str, str | None]:
     """Cross-platform torch wheel index for the chosen accelerator.
 
@@ -229,7 +211,6 @@ def _torch_index(accelerator: str) -> tuple[str, str | None]:
         return ("CUDA 12.4", "https://download.pytorch.org/whl/cu124")
     return ("CPU", "https://download.pytorch.org/whl/cpu")
 
-
 def _pip_phases(accelerator: str):
     """(step label, pip argv) pairs for installing the inference stack."""
     import sys
@@ -241,7 +222,6 @@ def _pip_phases(accelerator: str):
         (f"Installing PyTorch ({label})", torch_cmd),
         ("Installing transformers, diffusers and supporting libraries", pip + _INFERENCE_PKGS),
     ]
-
 
 @router.post("/setup")
 async def setup(payload: dict = Body(default={})):
@@ -300,7 +280,6 @@ async def setup(payload: dict = Body(default={})):
 
     return StreamingResponse(stream(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
-
 
 def _sse(obj: dict) -> str:
     import json

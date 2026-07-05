@@ -9,16 +9,13 @@ const HUB_TASKS = [
   { id: 'detection',    nm: 'Detection',    task: 'object-detection',             ic: 'target'   },
   { id: 'classify',     nm: 'Classify',     task: 'image-classification',         ic: 'eye'      },
   { id: 'diffusion',    nm: 'Diffusion',    task: 'text-to-image',                ic: 'sparkle'  },
-  // ↑ default-visible 8. "+ more" reveals the rest below.
+
   { id: 'depth',        nm: 'Depth',        task: 'depth-estimation',             ic: 'layers'   },
   { id: 'docs',         nm: 'Docs / OCR',   task: 'document-question-answering',  ic: 'file'     },
   { id: 'asr',          nm: 'ASR',          task: 'automatic-speech-recognition', ic: 'waveform' },
   { id: 'tts',          nm: 'TTS',          task: 'text-to-speech',               ic: 'waveform' },
 ];
 
-// Popular model families. Clicking one drops its search keyword into the
-// query box (which is already debounced). First N rendered by default;
-// "+ more" reveals the rest.
 const MODEL_FAMILIES = [
   { nm: 'Llama',     q: 'llama' },
   { nm: 'Qwen',      q: 'qwen' },
@@ -28,7 +25,7 @@ const MODEL_FAMILIES = [
   { nm: 'DeepSeek',  q: 'deepseek' },
   { nm: 'Florence',  q: 'florence' },
   { nm: 'LLaVA',     q: 'llava' },
-  // ↑ default-visible 8.
+
   { nm: 'Moondream', q: 'moondream' },
   { nm: 'PaliGemma', q: 'paligemma' },
   { nm: 'SmolVLM',   q: 'smolvlm' },
@@ -49,8 +46,6 @@ const MODEL_FAMILIES = [
   { nm: 'Bark',      q: 'bark' },
 ];
 
-// Modalities we sample for the "Suggested for you" list. One popular model
-// per category gives the user a varied, modality-spanning starter set.
 const SUGGEST_TASKS = [
   'image-text-to-text',
   'text-generation',
@@ -60,10 +55,8 @@ const SUGGEST_TASKS = [
   'image-classification',
 ];
 
-// Models above this size are excluded from suggestions (~most user GPUs).
-const SUGGEST_MAX_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB
+const SUGGEST_MAX_BYTES = 5 * 1024 * 1024 * 1024; 
 
-// Parse "1.2 GB" / "462 MB" / "150 MB" / "-" → bytes (NaN means unknown).
 function _parseSize(s) {
   if (!s || typeof s !== 'string') return NaN;
   const m = s.match(/^([\d.]+)\s*([KMGT]?B)$/i);
@@ -74,7 +67,6 @@ function _parseSize(s) {
   return n * mul;
 }
 
-// Parse a parameter count like "8B" / "0.6B" / "462M" → number (NaN unknown).
 function _parseParams(s) {
   if (!s || typeof s !== 'string') return NaN;
   const m = s.match(/^([\d.]+)\s*([KMB])$/i);
@@ -83,12 +75,6 @@ function _parseParams(s) {
   return n * ({ K: 1e3, M: 1e6, B: 1e9 }[m[2].toUpperCase()] || 1);
 }
 
-// Bytes estimate used for the oversize filter WITHOUT waiting on async size
-// resolution. Prefer a real size already on the search result; otherwise
-// estimate from the parameter count (~2 bytes/param, fp16). Keeping this
-// independent of the trickle-in modelInfo sizes is what stops the "Suggested"
-// pick from churning as sizes resolve - modelInfo only refines the displayed
-// size, never which model is chosen.
 function _filterBytes(m) {
   const real = _parseSize(m.size);
   if (Number.isFinite(real)) return real;
@@ -101,11 +87,8 @@ function _formatLandingDate(d = new Date()) {
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
 }
 
-// Tasks our runtime can actually execute. Kept in sync with python/tasks/ +
-// the DiffusersAdapter. Models with any other pipeline_tag are hidden from
-// the Hub until we add a handler for them.
 const SUPPORTED_TASKS = new Set([
-  // standard pipeline
+
   'image-text-to-text',
   'text-generation',
   'translation',
@@ -122,53 +105,42 @@ const SUPPORTED_TASKS = new Set([
   'document-question-answering',
   'automatic-speech-recognition',
   'text-to-speech',
-  // diffusers
+
   'text-to-image',
   'image-to-image',
-  // 'inpainting' is intentionally omitted - the diffusers pipeline requires a
-  // mask (see python/adapters/diffusers_pipeline.py:55) and we don't ship a
-  // mask editor yet. Re-enable once a mask canvas is wired into the composer.
-]);
 
-// The main-process huggingface service filters results through
-// isNativelySupported() before returning - repos tagged ultralytics / YOLO /
-// RF-DETR / detectron2 / PaddleOCR / keras / onnx-only never reach the
-// renderer, so the only client-side filter we need is task-based (the "All"
-// tab sends task=null to the server, so we still have to drop models whose
-// pipeline_tag has no workspace on our side).
+
+]);
 
 function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, resetSignal = 0 }) {
   const [tab, setTab] = useStateMB('all');
   const [query, setQuery] = useStateMB('');
-  // Debounced copy of `query` - what drives the actual HF search. Prevents
-  // every keystroke from firing 2 HF API calls.
+
   const [debouncedQuery, setDebouncedQuery] = useStateMB('');
   const [showInstalled, setShowInstalled] = useStateMB(defaultInstalled);
-  // Sync showInstalled when the parent (App) toggles it via the sidebar buttons.
+
   useEffectMB(() => { setShowInstalled(defaultInstalled); }, [defaultInstalled]);
-  // Parent bumps `resetSignal` whenever the user clicks the sidebar Home
-  // button. Clear the active category + search so the landing view ("What
-  // would you like to run today?") reappears regardless of where the user
-  // was. The initial 0 → no-op render is filtered by the !== 0 guard.
+
+
+
   useEffectMB(() => {
     if (resetSignal === 0) return;
     setTab('all');
     setQuery('');
     setDebouncedQuery('');
   }, [resetSignal]);
-  // Full HF list per sampled modality, fetched once. Picks are derived from
-  // this pool + the live `installed` state, so installing a suggested model
-  // immediately backfills the row from the next-best candidate without
-  // hitting HF again.
-  const [suggestedPool, setSuggestedPool] = useStateMB({}); // { task -> Model[] }
-  const [suggestedSizes, setSuggestedSizes] = useStateMB({}); // { id -> "1.6 GB" }
+
+
+
+  const [suggestedPool, setSuggestedPool] = useStateMB({}); 
+  const [suggestedSizes, setSuggestedSizes] = useStateMB({}); 
   const [suggestedLoading, setSuggestedLoading] = useStateMB(true);
   const [results, setResults] = useStateMB([]);
   const [loading, setLoading] = useStateMB(false);
   const [err, setErr] = useStateMB(null);
   const [installed, setInstalled] = useStateMB({});
   const [downloads, setDownloads] = useStateMB({});
-  const [sizeMap, setSizeMap] = useStateMB({}); // id -> { size, bytes, hw }
+  const [sizeMap, setSizeMap] = useStateMB({}); 
   const dlTimers = useRefMB({});
 
   const refreshInstalled = async () => {
@@ -176,19 +148,16 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
   };
 
   useEffectMB(() => { refreshInstalled(); }, []);
-  // Stay in sync with installs.json mutations from any source: a finishing
-  // download in the Hub, an Uninstall click, the boot reconcile, or the
-  // Settings → Storage Clean button. Without this, the Installed list and
-  // any "Installed" badges go stale until the user navigates away and back.
+
+
+
   useEffectMB(() => {
     const off = window.localml?.hf?.onInstallsChanged?.(() => refreshInstalled());
     return () => { try { off && off(); } catch {} };
   }, []);
 
-  // Fetch the suggested-pool ONCE per Hub mount. One HF query per sampled
-  // modality, store the full top-N list per task. Picks are derived later
-  // (so installing a suggested model promotes the next candidate from the
-  // same pool without a re-fetch).
+
+
   useEffectMB(() => {
     let cancelled = false;
     (async () => {
@@ -211,8 +180,7 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
     return () => { cancelled = true; };
   }, []);
 
-  // Derive the visible picks: one per modality, skipping installed/oversized,
-  // capped to 5. Recomputes whenever the user installs/uninstalls a model.
+
   const suggestedList = useMemoMB(() => {
     const picks = [];
     const seen = new Set();
@@ -221,15 +189,14 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
       const pick = list.find(m => {
         if (!m.id || seen.has(m.id)) return false;
         if (installed[m.id]) return false;
-        // Filter on a stable estimate (real search size or param count), NOT the
-        // async-resolved suggestedSizes, so the pick doesn't cascade as sizes
-        // load in.
+
+
         const bytes = _filterBytes(m);
         if (Number.isFinite(bytes) && bytes > SUGGEST_MAX_BYTES) return false;
         return true;
       });
       if (pick) {
-        // Apply any resolved size from suggestedSizes onto the pick.
+
         const finalSize = suggestedSizes[pick.id] || pick.size;
         picks.push({ ...pick, size: finalSize });
         seen.add(pick.id);
@@ -239,9 +206,8 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
     return picks;
   }, [suggestedPool, suggestedSizes, installed]);
 
-  // Lazy-resolve sizes for any pick whose size is missing or "-". Reuses the
-  // same modelInfo IPC the search grid uses. Patches the suggestedSizes map
-  // so suggestedList re-derives with real sizes.
+
+
   useEffectMB(() => {
     let cancelled = false;
     (async () => {
@@ -252,12 +218,12 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
       const worker = async () => {
         while (!cancelled && cursor < needSize.length) {
           const m = needSize[cursor++];
-          if (suggestedSizes[m.id]) continue; // already resolved
+          if (suggestedSizes[m.id]) continue; 
           try {
             const info = await window.localml?.hf.modelInfo(m.id);
             if (cancelled || !info?.size) continue;
             setSuggestedSizes(prev => ({ ...prev, [m.id]: info.size }));
-          } catch { /* ignore - leave size as "-" */ }
+          } catch {  }
         }
       };
       await Promise.all(Array.from({ length: CONCURRENCY }, worker));
@@ -265,21 +231,18 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
     return () => { cancelled = true; };
   }, [suggestedList]);
 
-  // Debounce search input - no sense firing an HF request for every keystroke
-  // of a word the user is still typing. 300ms is the common UX default.
+
   useEffectMB(() => {
     const t = setTimeout(() => setDebouncedQuery(query), 300);
     return () => clearTimeout(t);
   }, [query]);
 
-  // Stream real-time download progress from the python sidecar.
   useEffectMB(() => {
     const off = window.localml?.tasks.onDownloadProgress((evt) => {
       if (!evt || !evt.modelId) return;
       const { modelId, pct, done, total, final } = evt;
       setDownloads(d => {
-        // Only merge into an entry we already created in startDownload -
-        // stray events for dismissed/completed entries are ignored.
+
         if (!d[modelId]) return d;
         return {
           ...d,
@@ -296,10 +259,8 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
     return () => { if (off) off(); };
   }, []);
 
-  // Whether to actually hit HF. We keep the model grid hidden until the user
-  // has expressed intent: typed something, picked a non-"all" modality, or
-  // toggled the Installed-only view. This prevents a giant pre-populated
-  // wall of random checkpoints on first load.
+
+
   const hasActiveFilter = (
     showInstalled
     || debouncedQuery.trim().length > 0
@@ -337,9 +298,8 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
           if (Array.isArray(r)) {
             if (!cancelled) setResults(r);
           } else {
-            // IPC returned {error: ...} - surface the error and keep the
-            // previous result set visible so the grid doesn't collapse to
-            // "No results." on a transient failure.
+
+
             if (!cancelled) setErr(r?.error || 'search failed');
           }
         }
@@ -369,17 +329,15 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
     }),
     [results, installed, sizeMap]);
 
-  // Server-side filter already excludes non-transformers/diffusers runtimes.
-  // Only drop models whose task we have no workspace for (relevant on the
-  // "All" tab, which doesn't pass a pipeline_tag filter to the server).
+
+
   const models = useMemoMB(
     () => allModels.filter(m => m.installed || SUPPORTED_TASKS.has(m.task)),
     [allModels]
   );
   const hiddenCount = allModels.length - models.length;
 
-  // Lazy-fetch sizes for any result missing one (4-way concurrency).
-  // Skip models whose task we don't support - saves HF API calls.
+
   useEffectMB(() => {
     let cancelled = false;
     (async () => {
@@ -419,7 +377,7 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
       const res = await window.localml.tasks.download(m.id);
       if (!res?.ok) {
         const msg = res?.error || 'download failed';
-        // User dismissed → entry already removed; don't resurrect it as "failed".
+
         setDownloads(d => d[m.id]
           ? { ...d, [m.id]: { status: 'error', error: msg } }
           : d);
@@ -435,12 +393,11 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
     }
   };
   const cancelDownload = async (id) => {
-    // Remove from UI immediately so the user sees the action take effect.
+
     setDownloads(d => { const rest = { ...d }; delete rest[id]; return rest; });
-    // Then tell the Python sidecar to unwind the in-flight snapshot_download.
-    // Fire-and-forget - the matching startDownload promise will reject with
-    // "cancelled", and its guarded setDownloads call above is a no-op since
-    // the entry is already gone.
+
+
+
     try { await window.localml?.tasks.cancelDownload(id); } catch {}
   };
   const uninstall = async (id) => {
@@ -451,10 +408,8 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
   const installedCount = Object.keys(installed).length;
   const activeDownloads = Object.keys(downloads).length;
 
-  // Build an array of installed models for the landing column. Prefer the
-  // metadata in installs.json (fast, local) over re-querying HF. Sorted by
-  // most recent install and capped at 5 so the landing fits one viewport;
-  // the full list is reachable via the "Installed only" toggle.
+
+
   const installedList = Object.entries(installed)
     .map(([id, m]) => ({
       id,
@@ -466,7 +421,6 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
     }))
     .sort((a, b) => b.installedAt - a.installedAt)
     .slice(0, 5);
-
 
   return (
     <div className={`hub ${!hasActiveFilter ? 'hub-idle' : ''}`}>
@@ -540,7 +494,7 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
                     const hasPct = dl && typeof dl.pct === 'number' && dl.total > 0;
                     const pct = hasPct ? Math.max(0, Math.min(100, dl.pct)) : null;
                     const onRowClick = () => {
-                      if (dl && !error) return;          // don't double-start a running download
+                      if (dl && !error) return;          
                       if (error) { cancelDownload(m.id); startDownload(m); return; }
                       startDownload(m);
                     };
@@ -619,10 +573,7 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
               {query && <button className="hub-search-clear" onClick={() => setQuery('')}><Icon name="x" size={11}/></button>}
             </div>
           </div>
-          {/* Hide modality pills once the user is actively searching by name.
-              They reappear when the search box is cleared so the user can
-              switch back to "browse by category". Also hidden in
-              Installed-only mode where there's no Hub-side filter to show. */}
+          {}
           {!showInstalled && !query.trim() && (
             <div className="hub-tag-list" style={{justifyContent: 'flex-start'}}>
               {HUB_TASKS.map(t => (
@@ -640,14 +591,7 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
       )}
 
       <div className="hub-body">
-        {/* Persistent downloads tracker. On the landing view, the Suggested
-            column already renders an inline progress bar per row, so the
-            bottom strip would duplicate every visible download. We only
-            surface it on landing for *orphan* downloads - ones the user
-            kicked off elsewhere (search results, a different category)
-            that aren't in the current Suggested sample, otherwise they'd
-            be invisible until the user navigates back. In search view we
-            always show it as a persistent tracker that survives scroll. */}
+        {}
         {(() => {
           const inlineIds = hasActiveFilter ? new Set() : new Set((suggestedList || []).map(s => s.id));
           const stripEntries = Object.entries(downloads).filter(([id]) => !inlineIds.has(id));

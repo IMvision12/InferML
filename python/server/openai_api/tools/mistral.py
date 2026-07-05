@@ -9,7 +9,6 @@ from .base import make_tool_call, safe_loads, iter_json_values
 
 _MARKER = "[TOOL_CALLS]"
 
-
 class MistralParser:
     name = "mistral"
 
@@ -24,7 +23,6 @@ class MistralParser:
         arr = safe_loads(payload)
         items = arr if isinstance(arr, list) else ([arr] if isinstance(arr, dict) else None)
         if items is None:
-            # Fall back to scanning for objects if the payload wasn't a clean array.
             items = [o for o in iter_json_values(payload) if isinstance(o, dict)]
         for obj in items or []:
             if isinstance(obj, dict) and obj.get("name"):

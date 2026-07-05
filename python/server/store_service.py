@@ -13,12 +13,8 @@ from server.appdata import (
 )
 from server.events import HUB
 
-# Fields the renderer must never set via patch (id is the filename; createdAt
-# is immutable history).
 _PROTECTED_PATCH_FIELDS = {"id", "createdAt"}
-# Metadata fields owned by pin/rename flows that a stale full-save must not clobber.
 _METADATA_FIELDS = ["pinned"]
-
 
 def is_valid_chat_id(cid) -> bool:
     if not isinstance(cid, str):
@@ -31,12 +27,8 @@ def is_valid_chat_id(cid) -> bool:
         return False
     return True
 
-
 def _now_ms() -> int:
     return int(time.time() * 1000)
-
-
-# ---------- chats ----------
 
 def list_chats() -> list[dict]:
     out = []
@@ -66,23 +58,19 @@ def list_chats() -> list[dict]:
             })
     except Exception:
         return []
-    # Pinned first, then updatedAt desc.
     out.sort(key=lambda a: (0 if a.get("pinned") else 1, -(a.get("updatedAt") or 0)))
     return out
-
 
 def get_chat(cid: str):
     if not is_valid_chat_id(cid):
         return None
     return read_json(chat_file(cid), None)
 
-
 def save_chat(chat: dict) -> bool:
     if not chat or not is_valid_chat_id(chat.get("id")):
         raise ValueError("chat.id required")
     existing = read_json(chat_file(chat["id"]), None) or {}
     merged = {**existing, **chat}
-    # Preserve metadata fields the caller didn't explicitly set.
     for k in _METADATA_FIELDS:
         if k not in chat and k in existing:
             merged[k] = existing[k]
@@ -92,7 +80,6 @@ def save_chat(chat: dict) -> bool:
     write_json(chat_file(chat["id"]), merged)
     HUB.publish("chats:updated")
     return True
-
 
 def patch_chat(cid: str, patch: dict) -> bool:
     if not is_valid_chat_id(cid):
@@ -110,7 +97,6 @@ def patch_chat(cid: str, patch: dict) -> bool:
     HUB.publish("chats:updated")
     return True
 
-
 def delete_chat(cid: str) -> bool:
     if not is_valid_chat_id(cid):
         return False
@@ -121,12 +107,8 @@ def delete_chat(cid: str) -> bool:
     HUB.publish("chats:updated")
     return True
 
-
-# ---------- settings ----------
-
 def get_settings() -> dict:
     return read_json(settings_file(), {}) or {}
-
 
 def save_settings(patch: dict) -> dict:
     cur = get_settings()
@@ -134,12 +116,8 @@ def save_settings(patch: dict) -> dict:
     write_json(settings_file(), nxt)
     return nxt
 
-
-# ---------- installs registry ----------
-
 def list_installed() -> dict:
     return read_json(installs_file(), {}) or {}
-
 
 def mark_installed(model_id: str, meta: dict | None = None) -> bool:
     cur = list_installed()
@@ -147,7 +125,6 @@ def mark_installed(model_id: str, meta: dict | None = None) -> bool:
     write_json(installs_file(), cur)
     HUB.publish("hf:installsChanged")
     return True
-
 
 def uninstall(model_id: str) -> dict:
     cur = list_installed()

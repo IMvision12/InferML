@@ -5,12 +5,7 @@ from adapters.base import Adapter
 import output_kinds as ok
 from io_utils import decode_image, resolve_device, torch_dtype_for_device
 
-
-# Owners we trust to ship Qwen-VL weights without backdoors. Models from
-# anyone else need an explicit `trust_remote_code: true` in model_overrides.json
-# before we'll execute their custom modeling_*.py during load.
 _TRUSTED_QWEN_OWNERS = {"qwen"}
-
 
 class QwenVLAdapter(Adapter):
     @classmethod
@@ -23,25 +18,11 @@ class QwenVLAdapter(Adapter):
         from transformers import AutoProcessor
         self.info = info
         dtype = torch_dtype_for_device()
-        # `trust_remote_code` defaults TRUE only when the model owner is on
-        # the trusted list above. A user picking `random_user/qwen-vl-evil`
-        # gets trust=False and loading fails with a clear "set
-        # trust_remote_code=True" error from transformers, letting them
-        # opt in via model_overrides.json if they actually want to. Without
-        # this gate, any malicious HF upload matching `qwen` + `vl` could
-        # execute arbitrary Python in our sidecar on first inference.
         owner = (info.get("model_id") or "").split("/")[0].lower()
         trust_default = owner in _TRUSTED_QWEN_OWNERS
         trust = bool(self.override.get("trust_remote_code", trust_default))
         self.processor = AutoProcessor.from_pretrained(info["model_id"], trust_remote_code=trust)
 
-        # Pick the model class. Prefer AutoModelForImageTextToText (added in
-        # transformers ~4.50), which auto-dispatches to the right
-        # *ForConditionalGeneration class for any registered VLM config:
-        # Qwen2-VL, Qwen2.5-VL, Qwen3-VL, LLaVA, etc. Without it, the previous
-        # code fell through to AutoModelForCausalLM for unknown VLMs (Qwen3-VL,
-        # future Qwen-N-VL, ...) and crashed with "Unrecognized configuration
-        # class ... for AutoModelForCausalLM."
         ModelCls = None
         try:
             from transformers import AutoModelForImageTextToText as ModelCls

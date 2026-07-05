@@ -9,12 +9,8 @@ from __future__ import annotations
 
 import threading
 
-
 class LLMNotLoaded(Exception):
     """No usable text-generation model is available for the request."""
-
-
-# ---------- resolving a model handle ----------
 
 def _extract_model_tokenizer(adapter):
     """Both LLM adapter shapes expose a LoadedPipeline; pull model+tokenizer out.
@@ -36,14 +32,11 @@ def _extract_model_tokenizer(adapter):
         model = getattr(state, "model", None)
     if tokenizer is None:
         tokenizer = getattr(state, "processor", None)
-    # A tokenizer must be able to apply a chat template / tokenize text.
     if tokenizer is not None and not hasattr(tokenizer, "encode"):
         tokenizer = None
     return model, tokenizer
 
-
 _GENERIC_MODEL_NAMES = {"", "localml", "default", "current", "gpt-3.5-turbo", "gpt-4", "gpt-4o"}
-
 
 def resolve_llm(engine, requested_model: str | None):
     """Return (model, tokenizer, model_id). Prefers an explicitly named,
@@ -83,9 +76,6 @@ def resolve_llm(engine, requested_model: str | None):
         )
     return model, tokenizer, model_id
 
-
-# ---------- message + prompt handling ----------
-
 def _content_to_text(content) -> str:
     if content is None:
         return ""
@@ -101,18 +91,15 @@ def _content_to_text(content) -> str:
         return "\n".join(parts)
     return str(content)
 
-
 def normalize_messages(messages: list) -> list:
     out = []
     for m in messages or []:
         msg = {"role": m.get("role", "user"), "content": _content_to_text(m.get("content"))}
-        # Preserve fields the chat template may use for tool round-trips (Phase 4).
         for k in ("tool_calls", "tool_call_id", "name"):
             if m.get(k) is not None:
                 msg[k] = m[k]
         out.append(msg)
     return out
-
 
 def build_inputs(tokenizer, messages: list, tools=None):
     """Apply the tokenizer's chat template (with tools if provided) and return a
@@ -129,13 +116,11 @@ def build_inputs(tokenizer, messages: list, tools=None):
         if tools:
             kwargs["tools"] = tools
         enc = tokenizer.apply_chat_template(norm, **kwargs)
-        # Some tokenizer versions ignore return_dict and hand back a tensor.
         if hasattr(enc, "shape") and not hasattr(enc, "keys"):
             return {"input_ids": enc}
         return enc
     except Exception:
         try:
-            # Retry without return_dict for tokenizers that reject the kwarg.
             kwargs = dict(add_generation_prompt=True, return_tensors="pt")
             if tools:
                 kwargs["tools"] = tools
@@ -147,9 +132,6 @@ def build_inputs(tokenizer, messages: list, tools=None):
                 text += f"{m['role']}: {m['content']}\n"
             text += "assistant:"
             return tokenizer(text, return_tensors="pt")
-
-
-# ---------- generation ----------
 
 def _gen_kwargs(tokenizer, params: dict) -> dict:
     kwargs: dict = {"max_new_tokens": int(params.get("max_tokens") or 512)}
@@ -165,17 +147,14 @@ def _gen_kwargs(tokenizer, params: dict) -> dict:
         kwargs["pad_token_id"] = tokenizer.eos_token_id
     return kwargs
 
-
 def _to_device(inputs, device):
     if hasattr(inputs, "to"):
         return inputs.to(device)
     return {k: (v.to(device) if hasattr(v, "to") else v) for k, v in inputs.items()}
 
-
 def _prompt_len(inputs) -> int:
     ids = inputs["input_ids"]
     return int(ids.shape[-1])
-
 
 def generate_full(model, tokenizer, inputs, params: dict):
     """Non-streaming generation. Returns (text, prompt_tokens, completion_tokens)."""
@@ -190,7 +169,6 @@ def generate_full(model, tokenizer, inputs, params: dict):
     text = tokenizer.decode(new_tokens, skip_special_tokens=True)
     text = _apply_stop(text, params.get("stop"))
     return text, prompt_len, int(new_tokens.shape[-1])
-
 
 def stream_generate(model, tokenizer, inputs, params: dict, stop_flag=lambda: False):
     """Yield decoded text deltas as the model generates. Runs generate() on a
@@ -220,7 +198,7 @@ def stream_generate(model, tokenizer, inputs, params: dict, stop_flag=lambda: Fa
         try:
             with torch.no_grad():
                 model.generate(**kwargs)
-        except Exception as e:  # surfaced after the stream drains
+        except Exception as e:
             error["e"] = e
 
     thread = threading.Thread(target=_worker, name="oai-generate", daemon=True)
@@ -231,7 +209,6 @@ def stream_generate(model, tokenizer, inputs, params: dict, stop_flag=lambda: Fa
         acc += piece
         cut = _first_stop_index(acc, stops)
         if cut is not None:
-            # Emit up to the stop sequence, then end.
             remaining = acc[:cut]
             already = len(acc) - len(piece)
             if remaining and remaining[already:]:
@@ -242,19 +219,14 @@ def stream_generate(model, tokenizer, inputs, params: dict, stop_flag=lambda: Fa
     if "e" in error:
         raise error["e"]
 
-
-# ---------- stop-sequence helpers ----------
-
 def _stop_list(stop):
     if not stop:
         return []
     return [stop] if isinstance(stop, str) else [s for s in stop if isinstance(s, str)]
 
-
 def _first_stop_index(text: str, stops: list):
     idxs = [text.find(s) for s in stops if s and text.find(s) >= 0]
     return min(idxs) if idxs else None
-
 
 def _apply_stop(text: str, stop):
     for s in _stop_list(stop):

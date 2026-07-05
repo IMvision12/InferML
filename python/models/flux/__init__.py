@@ -8,17 +8,15 @@ checkpoint; dev users can override `num_inference_steps` and
 """
 from models._diffusion_helper import DiffusionFamilyAdapter
 
-
 class FluxAdapter(DiffusionFamilyAdapter):
     DEFAULT_STEPS = 4
     DEFAULT_GUIDANCE = 0.0
-
 
 LIBRARY = "diffusers"
 TASK = "text-to-image"
 REPO_PATTERNS = [
     "black-forest-labs/flux*",
     "black-forest-labs/flux.1*",
-    "*/flux*",                      # community forks
+    "*/flux*",
 ]
 ADAPTER = FluxAdapter

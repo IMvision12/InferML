@@ -13,9 +13,9 @@ MODEL_TYPES = [
     "data2vec-audio", "data2vec_audio",
     "unispeech", "unispeech-sat", "unispeech_sat",
     "sew", "sew-d", "sew_d",
-    "mctct",                            # M-CTC-T
-    "speech-to-text", "speech_to_text", # Facebook S2T
-    "qwen2_audio",                      # Qwen audio LLM
+    "mctct",
+    "speech-to-text", "speech_to_text",
+    "qwen2_audio",
 ]
 TASK = "automatic-speech-recognition"
 ADAPTER = make_pipeline_adapter("automatic-speech-recognition", name="Wav2Vec2Adapter")

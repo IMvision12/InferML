@@ -31,8 +31,6 @@ from models import FAMILIES  # noqa: E402
 
 JSON_PATH = PY_DIR / "supported_architectures.json"
 
-# Display order for tasks in the generated JSON. Matches the original
-# hand-written file. Tasks not in this list appear after, alphabetically.
 TASK_ORDER = [
     "object-detection",
     "zero-shot-object-detection",
@@ -70,21 +68,15 @@ LIBRARY_PASSTHROUGH_DOC = (
     "pipeline."
 )
 
-
 def build() -> "OrderedDict[str, object]":
     """Walk FAMILIES and emit the same shape as the hand-written JSON."""
     by_task: dict[str, list[str]] = {}
     for family_name, entry in FAMILIES.items():
-        # Skip library-keyed families (diffusion). they're routed by
-        # library_name + repo pattern, not by transformers model_type.
         if "model_types" not in entry:
             continue
         task = entry.get("task")
         if not task:
             continue
-        # Register model_types under the family's primary task plus any
-        # extra tasks declared via EXTRA_TASKS (e.g. BEiT does both
-        # image-classification and image-segmentation).
         tasks_for_this_family = [task] + list(entry.get("extra_tasks", []) or [])
         for t in tasks_for_this_family:
             bucket = by_task.setdefault(t, [])
@@ -93,7 +85,6 @@ def build() -> "OrderedDict[str, object]":
                 if key not in bucket:
                     bucket.append(key)
 
-    # Stable ordering: TASK_ORDER first, then anything else alphabetically.
     ordered = OrderedDict()
     ordered["_doc"] = DOC
     seen = set()
@@ -112,10 +103,8 @@ def build() -> "OrderedDict[str, object]":
     ])
     return ordered
 
-
 def render(payload) -> str:
     return json.dumps(payload, indent=2) + "\n"
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -148,7 +137,6 @@ def main() -> int:
     type_count = sum(len(v) for k, v in payload.items() if not k.startswith("_") and isinstance(v, list))
     print(f"Wrote {JSON_PATH.name}: {task_count} tasks, {type_count} model_types")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

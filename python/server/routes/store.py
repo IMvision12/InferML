@@ -7,18 +7,13 @@ from server import store_service as store
 
 router = APIRouter(prefix="/api")
 
-
-# ---------- chats ----------
-
 @router.get("/chats")
 async def list_chats():
     return store.list_chats()
 
-
 @router.get("/chats/{chat_id}")
 async def get_chat(chat_id: str):
     return store.get_chat(chat_id)
-
 
 @router.post("/chats")
 async def save_chat(chat: dict = Body(...)):
@@ -27,7 +22,6 @@ async def save_chat(chat: dict = Body(...)):
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
-
 @router.patch("/chats/{chat_id}")
 async def patch_chat(chat_id: str, patch: dict = Body(...)):
     try:
@@ -35,18 +29,13 @@ async def patch_chat(chat_id: str, patch: dict = Body(...)):
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
-
 @router.delete("/chats/{chat_id}")
 async def delete_chat(chat_id: str):
     return {"ok": store.delete_chat(chat_id)}
 
-
-# ---------- settings ----------
-
 @router.get("/settings")
 async def get_settings():
     return store.get_settings()
-
 
 @router.post("/settings")
 async def save_settings(patch: dict = Body(...)):

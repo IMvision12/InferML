@@ -20,34 +20,23 @@ import threading
 import time
 from pathlib import Path
 
-# Ensure `import routing`, `import adapters`, etc. resolve regardless of how the
-# engine is imported (server or a test).
 sys.path.insert(0, str(Path(__file__).parent.resolve()))
 
-# Apply Windows compatibility patches BEFORE any library that might call
-# os.symlink (HuggingFace cache, etc.). No-op on POSIX.
 import _win_compat  # noqa: F401, E402
 
 from routing import inspect_model, pick_adapter, override_for  # noqa: E402
 from io_utils import resolve_device  # noqa: E402
 
-
 class DownloadCancelled(Exception):
     """Raised from the custom tqdm when the user dismisses a download."""
-
 
 class Engine:
     """Holds the adapter cache and drives load / run / download / unload."""
 
     def __init__(self):
-        # (adapter_class_name, model_id) -> Adapter instance
         self._adapter_cache: dict = {}
-        # model_id of the most recently used text-generation model. The OpenAI
-        # endpoint routes to this when the request doesn't name a specific one.
         self._current_llm_id: str | None = None
         self._log = _default_log
-
-    # ---------- adapter loading ----------
 
     def _get_adapter(self, info: dict):
         model_id = info["model_id"]
@@ -68,8 +57,6 @@ class Engine:
             info["pipeline_tag"] = task
         return info
 
-    # ---------- run ----------
-
     def run(self, model_id: str, task: str | None, inputs: dict, params: dict | None) -> dict:
         """Execute one inference. Returns an `output_kinds` dict.
 
@@ -83,7 +70,6 @@ class Engine:
 
         inputs = inputs or {}
 
-        # Apply model_overrides.json params as defaults; request params win.
         override = override_for(model_id) or {}
         ovr_params = override.get("params") or {}
         req_params = params or {}
@@ -98,13 +84,10 @@ class Engine:
             self._current_llm_id = model_id
         return out
 
-    # ---------- LLM handles (used by the OpenAI endpoint, Phase 3) ----------
-
     def current_llm_id(self) -> str | None:
         return self._current_llm_id
 
     def loaded_model_ids(self) -> list[str]:
-        # Deduplicate across adapter classes that share a model_id.
         seen = []
         for (_cls, model_id) in self._adapter_cache.keys():
             if model_id not in seen:
@@ -130,8 +113,6 @@ class Engine:
         info = self._resolve_info(model_id, task)
         return self._get_adapter(info)
 
-    # ---------- unload ----------
-
     def unload(self, model_id: str | None = None) -> int:
         """Drop cached adapter(s), freeing references (GPU memory). Returns the
         number of adapters unloaded. `None` unloads everything."""
@@ -146,11 +127,8 @@ class Engine:
                     pass
             if self._current_llm_id == k[1]:
                 self._current_llm_id = None
-        # Best-effort CUDA cache release so freed VRAM is actually returned.
         _empty_torch_cache()
         return len(keys)
-
-    # ---------- download ----------
 
     def download(self, model_id: str, on_progress=None, cancel_event: "threading.Event | None" = None) -> dict:
         """Run `snapshot_download`, streaming byte-level progress via the
@@ -168,7 +146,6 @@ class Engine:
 
         on_progress = on_progress or (lambda _evt: None)
 
-        # Order must match huggingface.js WEIGHT_FORMAT_ORDER.
         WEIGHT_FORMAT_ORDER = ["safetensors", "bin", "pt", "ckpt", "msgpack", "h5", "onnx", "ot"]
         WEIGHT_EXT_RX = re.compile(r"\.(safetensors|bin|pt|ckpt|msgpack|h5|onnx|ot)$", re.IGNORECASE)
 
@@ -225,7 +202,6 @@ class Engine:
 
         class ProgressTqdm(_BaseTqdm):
             def __init__(self, *args, **kwargs):
-                # Capture unit BEFORE super().__init__ short-circuits on disable.
                 self._is_bytes = kwargs.get("unit") == "B"
                 kwargs["disable"] = True
                 super().__init__(*args, **kwargs)
@@ -245,7 +221,7 @@ class Engine:
                     if should_emit:
                         emit()
 
-        emit()  # initial 0% so the UI flips to progress view immediately
+        emit()
         try:
             kwargs: dict = {"repo_id": model_id, "tqdm_class": ProgressTqdm}
             if ignore_patterns:
@@ -255,12 +231,8 @@ class Engine:
             emit(final=True)
         return {"path": path, "bytes": state["done"], "total_bytes": total_bytes}
 
-
-# ---------- module-level helpers ----------
-
 def _default_log(msg: str) -> None:
     print(f"[engine] {msg}", file=sys.stderr, flush=True)
-
 
 def _is_text_generation(info: dict, task: str | None, out: dict) -> bool:
     """Best-effort: did this run produce LLM text from a causal model?"""
@@ -269,7 +241,6 @@ def _is_text_generation(info: dict, task: str | None, out: dict) -> bool:
         return (out or {}).get("kind") == "text"
     return False
 
-
 def _empty_torch_cache() -> None:
     try:
         import torch
@@ -277,7 +248,6 @@ def _empty_torch_cache() -> None:
             torch.cuda.empty_cache()
     except Exception:
         pass
-
 
 def actionable_error(e: Exception) -> str:
     """Translate raw tracebacks into messages a user can act on.
@@ -321,7 +291,4 @@ def actionable_error(e: Exception) -> str:
                 "or drop a plugin file in python/plugins/.")
     return msg
 
-
-# A process-wide singleton. Both the sidecar and the server share one engine so
-# the adapter cache (and loaded VRAM) is never duplicated within a process.
 ENGINE = Engine()

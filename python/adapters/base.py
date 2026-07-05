@@ -8,9 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-
 class Adapter(ABC):
-    # Override options merged with request params. Safe to read even before load().
     override: dict = {}
 
     @classmethod

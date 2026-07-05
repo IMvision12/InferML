@@ -19,17 +19,12 @@ from server.appdata import hf_token_file, read_json, write_json
 _PY_DIR = Path(__file__).resolve().parents[1]
 _SERVER_DIR = Path(__file__).resolve().parent
 
-
 def _matrix_path() -> Path:
-    # Dev/repo layout: python/supported_architectures.json. Installed package:
-    # a copy bundled inside the server package (server/_data/) - see
-    # scripts/bundle-webui.js and pyproject package-data.
     for cand in (_PY_DIR / "supported_architectures.json",
                  _SERVER_DIR / "_data" / "supported_architectures.json"):
         if cand.exists():
             return cand
     return _PY_DIR / "supported_architectures.json"
-
 
 _TYPES_BY_TASK: dict[str, set] = {}
 _LIBRARY_PASSTHROUGH: set = set()
@@ -52,10 +47,8 @@ _WEIGHT_EXT_RX = re.compile(r"\.(safetensors|bin|pt|ckpt|msgpack|h5|onnx|ot)$", 
 
 _MODEL_ID_RX = re.compile(r"^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$")
 
-
 def is_valid_model_id(mid) -> bool:
     return isinstance(mid, str) and 0 < len(mid) <= 200 and bool(_MODEL_ID_RX.match(mid))
-
 
 def hf_cache_dir() -> Path:
     """The Hugging Face hub cache directory, resolved exactly the way
@@ -65,7 +58,6 @@ def hf_cache_dir() -> Path:
         from huggingface_hub.constants import HF_HUB_CACHE
         return Path(HF_HUB_CACHE)
     except Exception:
-        # Mirror huggingface_hub's own default resolution as a fallback.
         if os.environ.get("HF_HUB_CACHE"):
             return Path(os.environ["HF_HUB_CACHE"])
         hf_home = os.environ.get("HF_HOME")
@@ -74,12 +66,8 @@ def hf_cache_dir() -> Path:
             hf_home = os.path.join(xdg, "huggingface")
         return Path(hf_home) / "hub"
 
-
 def _lower(x) -> str:
     return str(x or "").lower()
-
-
-# ---------- support filter ----------
 
 def _resolve_task(m: dict):
     tags = [_lower(t) for t in (m.get("tags") or [])]
@@ -93,7 +81,6 @@ def _resolve_task(m: dict):
             return t
     return None
 
-
 def _is_natively_supported(m: dict) -> bool:
     library = _lower(m.get("library_name"))
     tags = [_lower(t) for t in (m.get("tags") or [])]
@@ -102,7 +89,7 @@ def _is_natively_supported(m: dict) -> bool:
     if library in _LIBRARY_PASSTHROUGH:
         return True
     if library in ("transformers", "") or library in _TRUST_REMOTE_CODE_LIBRARIES:
-        pass  # falls through to model_type whitelist
+        pass
     else:
         return False
     task = _resolve_task(m)
@@ -113,9 +100,6 @@ def _is_natively_supported(m: dict) -> bool:
         return False
     return any(t in allowed for t in tags)
 
-
-# ---------- HF REST ----------
-
 def _hf_headers() -> dict:
     headers = {"User-Agent": "localml"}
     token = get_token()
@@ -123,12 +107,10 @@ def _hf_headers() -> dict:
         headers["Authorization"] = f"Bearer {token}"
     return headers
 
-
 def _http_get_json(url: str, timeout: float = 20.0):
     req = urllib.request.Request(url, headers=_hf_headers())
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read().decode("utf-8"))
-
 
 def _fetch_model_list(q=None, task=None, library=None, limit=100) -> list:
     params = {"limit": str(limit), "full": "true", "sort": "downloads", "direction": "-1"}
@@ -140,7 +122,6 @@ def _fetch_model_list(q=None, task=None, library=None, limit=100) -> list:
         params["library"] = library
     url = "https://huggingface.co/api/models?" + urllib.parse.urlencode(params)
     return _http_get_json(url)
-
 
 def search(q=None, task=None) -> dict:
     queries = [{"q": q, "task": task, "library": "transformers", "limit": 100}]
@@ -195,7 +176,6 @@ def search(q=None, task=None) -> dict:
         })
     return {"items": items}
 
-
 def model_info(mid: str) -> dict:
     if not is_valid_model_id(mid):
         return {"id": mid, "size": None, "bytes": 0, "error": "Invalid model id"}
@@ -207,15 +187,11 @@ def model_info(mid: str) -> dict:
     except Exception:
         return {"id": mid, "size": None, "bytes": 0}
 
-
-# ---------- token ----------
-
 def get_token():
     env = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
     if env:
         return env
     return (read_json(hf_token_file(), {}) or {}).get("token")
-
 
 def get_masked_token():
     t = get_token()
@@ -223,14 +199,12 @@ def get_masked_token():
         return None
     return t[:3] + "…" + t[-4:] if len(t) > 8 else "…"
 
-
 def set_token(token: str) -> dict:
     write_json(hf_token_file(), {"token": token})
     if token:
         os.environ["HF_TOKEN"] = token
         os.environ["HUGGING_FACE_HUB_TOKEN"] = token
     return {"ok": True}
-
 
 def clear_token() -> dict:
     try:
@@ -240,7 +214,6 @@ def clear_token() -> dict:
     os.environ.pop("HF_TOKEN", None)
     os.environ.pop("HUGGING_FACE_HUB_TOKEN", None)
     return {"ok": True}
-
 
 def verify_token(token: str) -> dict:
     try:
@@ -254,12 +227,7 @@ def verify_token(token: str) -> dict:
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
-
-# ---------- cache delete ----------
-
 def _cache_roots() -> list[Path]:
-    # The canonical hub dir first, then a few conventional fallbacks in case a
-    # model was fetched under a different HF_HOME earlier. Cross-platform.
     roots = [hf_cache_dir()]
     if os.environ.get("HF_HUB_CACHE"):
         roots.append(Path(os.environ["HF_HUB_CACHE"]))
@@ -279,7 +247,6 @@ def _cache_roots() -> list[Path]:
             out.append(r)
     return out
 
-
 def delete_model_cache(mid: str) -> dict:
     dir_name = "models--" + str(mid).replace("/", "--")
     removed, errors = [], []
@@ -293,13 +260,9 @@ def delete_model_cache(mid: str) -> dict:
                 errors.append({"path": str(candidate), "error": str(e)})
     return {"removed": removed, "errors": errors}
 
-
-# ---------- size/label helpers (ported) ----------
-
 def _card(m, key):
     cd = m.get("cardData") or {}
     return cd.get(key)
-
 
 def _estimate_params(m: dict) -> str:
     for t in (m.get("tags") or []):
@@ -308,7 +271,6 @@ def _estimate_params(m: dict) -> str:
             return mt.group(1).upper()
     m2 = re.search(r"(\d+(?:\.\d+)?)\s*b\b", _lower(m.get("id")))
     return (m2.group(1) + "B") if m2 else ""
-
 
 def _estimate_size(m: dict) -> int:
     sibs = m.get("siblings") if isinstance(m.get("siblings"), list) else []
@@ -325,12 +287,10 @@ def _estimate_size(m: dict) -> int:
             return sum((s.get("size") or 0) for s in groups[ext])
     return m.get("usedStorage") or 0
 
-
 def _size_to_hw(b) -> str:
     if not b:
         return "ok"
     return "warn" if (b / (1024 ** 3)) > 20 else "ok"
-
 
 def _short_lib(m: dict) -> str:
     tags = m.get("tags") or []
@@ -338,7 +298,6 @@ def _short_lib(m: dict) -> str:
         if lib in tags:
             return f"{lib} · {m.get('pipeline_tag') or ''}"
     return m.get("pipeline_tag") or ""
-
 
 def _human_bytes(b) -> str:
     if not b:
@@ -349,7 +308,6 @@ def _human_bytes(b) -> str:
         n /= 1024
         i += 1
     return f"{n:.1f} {units[i]}" if (n < 10 and i > 0) else f"{n:.0f} {units[i]}"
-
 
 def _human_compact(n) -> str:
     if not n:

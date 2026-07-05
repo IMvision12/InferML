@@ -38,25 +38,13 @@ import fnmatch
 import importlib
 from pathlib import Path
 
-# model_type tag (lowercased) -> {adapter, task, family}
 REGISTRY: dict[str, dict] = {}
-# folder name -> {adapter, task, model_types | library, patterns?, family}
 FAMILIES: dict[str, dict] = {}
-# Library-keyed entries. ordered list so we can preserve deterministic
-# precedence among overlapping repo patterns. Each entry:
-#   {library, patterns: list[str], adapter, task, family}
 LIBRARY_REGISTRY: list[dict] = []
-# folder name -> Exception. populated when an import fails.
 LOAD_ERRORS: dict[str, Exception] = {}
-
 
 def _register_model_types(family: str, mod, adapter, task) -> None:
     mts = list(getattr(mod, "MODEL_TYPES", []) or [])
-    # EXTRA_TASKS lets a family declare additional pipeline_tags its
-    # model_types may surface under on HF (e.g. BEiT does both image
-    # classification AND segmentation). Used by the JSON generator so the
-    # filter accepts those repos. Routing still goes through this folder's
-    # adapter, which dispatches by pipeline_tag at run time.
     extras = list(getattr(mod, "EXTRA_TASKS", []) or [])
     FAMILIES[family] = {
         "adapter": adapter,
@@ -68,8 +56,6 @@ def _register_model_types(family: str, mod, adapter, task) -> None:
     for mt in mts:
         key = str(mt).lower()
         if key in REGISTRY and REGISTRY[key]["family"] != family:
-            # First-registered wins. flag the collision in errors so we don't
-            # silently override.
             LOAD_ERRORS[family] = ValueError(
                 f"model_type {key!r} already claimed by family {REGISTRY[key]['family']!r}"
             )
@@ -79,7 +65,6 @@ def _register_model_types(family: str, mod, adapter, task) -> None:
             "task": task,
             "family": family,
         }
-
 
 def _register_library(family: str, mod, adapter, task) -> None:
     library = str(getattr(mod, "LIBRARY", "")).lower()
@@ -103,7 +88,6 @@ def _register_library(family: str, mod, adapter, task) -> None:
         "task": task,
         "family": family,
     })
-
 
 def _discover() -> None:
     here = Path(__file__).parent
@@ -140,9 +124,7 @@ def _discover() -> None:
         except Exception as e:
             LOAD_ERRORS[sub.name] = e
 
-
 _discover()
-
 
 def adapter_for_model_type(model_type: str) -> type | None:
     if not model_type:
@@ -150,13 +132,11 @@ def adapter_for_model_type(model_type: str) -> type | None:
     entry = REGISTRY.get(str(model_type).lower())
     return entry["adapter"] if entry else None
 
-
 def family_for_model_type(model_type: str) -> str | None:
     if not model_type:
         return None
     entry = REGISTRY.get(str(model_type).lower())
     return entry["family"] if entry else None
-
 
 def adapter_for_library(library: str, model_id: str) -> tuple[type, str] | None:
     """Library-keyed dispatch. Returns (adapter_cls, family) or None.
@@ -175,7 +155,6 @@ def adapter_for_library(library: str, model_id: str) -> tuple[type, str] | None:
             if fnmatch.fnmatchcase(mid, pattern.lower()):
                 return entry["adapter"], entry["family"]
     return None
-
 
 __all__ = [
     "REGISTRY",

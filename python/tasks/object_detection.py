@@ -6,9 +6,7 @@ from ._render import draw_boxes, encode_png_data_url
 from io_utils import decode_image
 import output_kinds as ok
 
-
 ACCENT_DETECT = (100, 220, 180)
-
 
 def _nms(pruned, iou):
     import torch
@@ -28,14 +26,12 @@ def _nms(pruned, iou):
     keep = batched_nms(b, s, l, iou_threshold=iou).tolist()
     return [pruned[i] for i in keep]
 
-
 def _normalize_boxes(W, H, pruned):
     return [{
         "label": label,
         "score": score,
         "box": [x1 / W, y1 / H, (x2 - x1) / W, (y2 - y1) / H],
     } for (x1, y1, x2, y2, score, label) in pruned]
-
 
 class StandardDetectionVariant(TaskVariant):
     """DETR, YOLOS, RT-DETR, ConditionalDETR, etc. Standard pipeline + NMS."""
@@ -64,19 +60,16 @@ class StandardDetectionVariant(TaskVariant):
         pruned = _nms(pruned, iou)
         boxes = _normalize_boxes(W, H, pruned)
 
-        # Draw the finished annotated image server-side - UI just displays it.
         annotated = draw_boxes(img, boxes, accent=ACCENT_DETECT)
         result = ok.boxes(boxes)
         result["annotated"] = encode_png_data_url(annotated)
         return result
-
 
 class ObjectDetectionTask(TaskHandler):
     name = "object-detection"
     output_kind = "boxes"
     default_params = {"threshold": 0.5, "nms_iou": 0.45}
     variants = [StandardDetectionVariant()]
-
 
 class ZeroShotDetectionVariant(TaskVariant):
     """OWL-ViT, OWLv2, Grounding-DINO - takes candidate_labels (text prompts)."""
@@ -111,7 +104,6 @@ class ZeroShotDetectionVariant(TaskVariant):
         result = ok.boxes(boxes)
         result["annotated"] = encode_png_data_url(annotated)
         return result
-
 
 class ZeroShotObjectDetectionTask(TaskHandler):
     name = "zero-shot-object-detection"

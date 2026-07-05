@@ -10,15 +10,7 @@ from adapters.base import Adapter
 import output_kinds as ok
 from io_utils import decode_image, resolve_device, torch_dtype_for_device
 
-
-# Florence-2 ships custom modeling code (no auto_map in transformers), so it
-# can ONLY load with trust_remote_code=True. Limit that automatic trust to
-# Microsoft's official upload. Any other "florence-2"-named repo on the Hub
-# could be a malicious clone, and we don't want to execute its modeling_*.py
-# during load. Users wanting third-party Florence-2 forks must opt in via
-# model_overrides.json.
 _TRUSTED_FLORENCE_OWNERS = {"microsoft"}
-
 
 class Florence2Adapter(Adapter):
     DEFAULT_TASK = "<CAPTION>"
@@ -72,8 +64,6 @@ class Florence2Adapter(Adapter):
         )
         result = parsed.get(task_token, parsed)
 
-        # Detection-like task tokens (<OD>, <DENSE_REGION_CAPTION>,
-        # <REGION_PROPOSAL>, <CAPTION_TO_PHRASE_GROUNDING>) emit `bboxes`.
         if isinstance(result, dict) and "bboxes" in result and "labels" in result:
             W, H = img.width, img.height
             items = []
@@ -86,7 +76,6 @@ class Florence2Adapter(Adapter):
                 })
             return ok.boxes(items)
 
-        # <OPEN_VOCABULARY_DETECTION> uses different keys for the same shape.
         if isinstance(result, dict) and "bboxes" in result and "bboxes_labels" in result:
             W, H = img.width, img.height
             items = []
@@ -98,9 +87,6 @@ class Florence2Adapter(Adapter):
                 })
             return ok.boxes(items)
 
-        # <OCR_WITH_REGION> emits 4-corner `quad_boxes`. We render them as
-        # axis-aligned boxes by taking each quad's enclosing rectangle.
-        # Less precise than rotated quads, but fits our `boxes` output kind.
         if isinstance(result, dict) and "quad_boxes" in result and "labels" in result:
             W, H = img.width, img.height
             items = []

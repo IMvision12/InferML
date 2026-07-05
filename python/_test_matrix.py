@@ -35,28 +35,21 @@ from pathlib import Path
 HERE = Path(__file__).parent.resolve()
 sys.path.insert(0, str(HERE))
 
-# Reuse the app's cache so re-runs are free for already-downloaded models.
 os.environ.setdefault(
     "HF_HOME",
     str(Path(os.environ.get("APPDATA", "")) / "LocalML" / "hf-cache"),
 )
 
-# Same Windows symlink-permission workaround the engine uses, so this test
-# harness doesn't hit WinError 1314 during snapshot downloads.
 import _win_compat  # noqa: F401, E402
 
-# IMPORTANT: only the LocalML backend modules below. No direct transformers.
 from routing import inspect_model, pick_adapter           # noqa: E402
 from io_utils import resolve_device                        # noqa: E402
 
-MAX_BYTES = 10 * 1024 * 1024 * 1024  # 10 GB cap
+MAX_BYTES = 10 * 1024 * 1024 * 1024
 
 RESULTS_PATH = HERE.parent / "test_results.jsonl"
 OUTPUTS_DIR = HERE.parent / "test_outputs"
 HF_CACHE_HUB = Path(os.environ["HF_HOME"]) / "hub"
-
-
-# ─── synthetic test inputs (generated once, reused for every case) ────────
 
 def _make_test_image():
     from PIL import Image, ImageDraw
@@ -68,7 +61,6 @@ def _make_test_image():
     buf = io.BytesIO(); img.save(buf, format="PNG")
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
-
 def _make_test_audio(seconds=1.5):
     import numpy as np
     import soundfile as sf
@@ -77,7 +69,6 @@ def _make_test_audio(seconds=1.5):
     audio = 0.3 * np.sin(2 * np.pi * 440 * t) + 0.2 * np.sin(2 * np.pi * 880 * t)
     buf = io.BytesIO(); sf.write(buf, audio, sr, format="WAV")
     return "data:audio/wav;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
-
 
 TEST_IMG = _make_test_image()
 TEST_AUDIO = _make_test_audio()
@@ -88,9 +79,6 @@ SUMM_TEXT = (
     "and as a public relations boon for astronomy. The Hubble telescope is named after "
     "astronomer Edwin Hubble and is one of NASA's Great Observatories."
 )
-
-
-# ─── per-task payload + expected output kind ──────────────────────────────
 
 TASK_PAYLOAD = {
     "object-detection":              {"input": {"kind": "image", "dataUrl": TEST_IMG}, "params": {"threshold": 0.3}},
@@ -132,13 +120,7 @@ EXPECTED_KIND = {
     "image-to-image":                 "image",
 }
 
-
-# ─── matrix: (model_id, task) ─────────────────────────────────────────────
-# Skips (toolarge / gated / no-checkpoint) are OMITTED from this list - the
-# tracking doc in MODEL_TESTING.md captures them.
-
 CASES = [
-    # Object detection
     ("facebook/detr-resnet-50",                                "object-detection"),
     ("microsoft/conditional-detr-resnet-50",                   "object-detection"),
     ("SenseTime/deformable-detr",                              "object-detection"),
@@ -148,12 +130,10 @@ CASES = [
     ("PekingU/rtdetr_v2_r18vd",                                "object-detection"),
     ("ustc-community/dfine-nano-coco",                         "object-detection"),
 
-    # Zero-shot detection
     ("google/owlvit-base-patch32",                             "zero-shot-object-detection"),
     ("google/owlv2-base-patch16-ensemble",                     "zero-shot-object-detection"),
     ("IDEA-Research/grounding-dino-tiny",                      "zero-shot-object-detection"),
 
-    # Image segmentation
     ("nvidia/segformer-b0-finetuned-ade-512-512",              "image-segmentation"),
     ("facebook/maskformer-swin-tiny-coco",                     "image-segmentation"),
     ("facebook/mask2former-swin-tiny-coco-instance",           "image-segmentation"),
@@ -167,11 +147,9 @@ CASES = [
     ("apple/deeplabv3-mobilevit-xx-small",                     "image-segmentation"),
     ("tue-mps/coco_instance_eomt_large_640",                   "image-segmentation"),
 
-    # Mask generation
     ("facebook/sam-vit-base",                                  "mask-generation"),
     ("facebook/sam2.1-hiera-tiny",                             "mask-generation"),
 
-    # Image classification
     ("google/vit-base-patch16-224",                            "image-classification"),
     ("facebook/deit-tiny-patch16-224",                         "image-classification"),
     ("microsoft/beit-base-patch16-224",                        "image-classification"),
@@ -196,7 +174,6 @@ CASES = [
     ("MBZUAI/swiftformer-xs",                                  "image-classification"),
     ("timm/resnet18.a1_in1k",                                  "image-classification"),
 
-    # Zero-shot image classification
     ("openai/clip-vit-base-patch32",                           "zero-shot-image-classification"),
     ("google/siglip-base-patch16-224",                         "zero-shot-image-classification"),
     ("google/siglip2-base-patch16-224",                        "zero-shot-image-classification"),
@@ -205,7 +182,6 @@ CASES = [
     ("Salesforce/blip-itm-base-coco",                          "zero-shot-image-classification"),
     ("facebook/metaclip-b32-400m",                             "zero-shot-image-classification"),
 
-    # Image-to-text
     ("Salesforce/blip-image-captioning-base",                  "image-to-text"),
     ("microsoft/git-base",                                     "image-to-text"),
     ("nlpconnect/vit-gpt2-image-captioning",                   "image-to-text"),
@@ -213,7 +189,6 @@ CASES = [
     ("microsoft/trocr-small-printed",                          "image-to-text"),
     ("naver-clova-ix/donut-base",                              "image-to-text"),
 
-    # Depth estimation
     ("Intel/dpt-hybrid-midas",                                 "depth-estimation"),
     ("vinvino02/glpn-kitti",                                   "depth-estimation"),
     ("Intel/zoedepth-nyu-kitti",                               "depth-estimation"),
@@ -221,11 +196,9 @@ CASES = [
     ("apple/DepthPro-hf",                                      "depth-estimation"),
     ("depth-anything/prompt-depth-anything-vits-hf",           "depth-estimation"),
 
-    # Document QA
     ("microsoft/layoutlmv3-base",                              "document-question-answering"),
     ("naver-clova-ix/donut-base-finetuned-docvqa",             "document-question-answering"),
 
-    # VLMs (small ones only)
     ("llava-hf/llava-onevision-qwen2-0.5b-ov-hf",              "image-text-to-text"),
     ("Qwen/Qwen2-VL-2B-Instruct",                              "image-text-to-text"),
     ("Qwen/Qwen2.5-VL-3B-Instruct",                            "image-text-to-text"),
@@ -238,7 +211,6 @@ CASES = [
     ("vikhyatk/moondream2",                                    "image-text-to-text"),
     ("openbmb/MiniCPM-V-2",                                    "image-text-to-text"),
 
-    # Text generation (LLMs)
     ("Qwen/Qwen2-0.5B",                                        "text-generation"),
     ("Qwen/Qwen3-0.6B",                                        "text-generation"),
     ("microsoft/phi-2",                                        "text-generation"),
@@ -263,15 +235,12 @@ CASES = [
     ("Zyphra/Zamba2-1.2B",                                     "text-generation"),
     ("LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct",                   "text-generation"),
 
-    # Translation
     ("Helsinki-NLP/opus-mt-en-fr",                             "translation"),
     ("facebook/m2m100_418M",                                   "translation"),
     ("facebook/wmt19-en-de",                                   "translation"),
 
-    # Summarization
     ("microsoft/prophetnet-large-uncased-cnndm",               "summarization"),
 
-    # ASR
     ("openai/whisper-tiny",                                    "automatic-speech-recognition"),
     ("facebook/wav2vec2-base-960h",                            "automatic-speech-recognition"),
     ("facebook/wav2vec2-conformer-rope-large-960h-ft",         "automatic-speech-recognition"),
@@ -288,19 +257,14 @@ CASES = [
     ("UsefulSensors/moonshine-tiny",                           "automatic-speech-recognition"),
     ("nvidia/parakeet-ctc-0.6b",                               "automatic-speech-recognition"),
 
-    # TTS
     ("microsoft/speecht5_tts",                                 "text-to-speech"),
     ("kakao-enterprise/vits-ljs",                              "text-to-speech"),
     ("suno/bark-small",                                        "text-to-speech"),
     ("facebook/musicgen-small",                                "text-to-speech"),
 
-    # Diffusers (text-to-image)
     ("stabilityai/sdxl-turbo",                                 "text-to-image"),
     ("kandinsky-community/kandinsky-2-2-decoder",              "text-to-image"),
 ]
-
-
-# ─── helpers ──────────────────────────────────────────────────────────────
 
 def probe_repo_size(model_id):
     """Sum the bytes of every file in the repo. Returns (bytes, gated_bool)
@@ -321,13 +285,11 @@ def probe_repo_size(model_id):
             total += sz
     return total, False
 
-
 def cleanup_cache(model_id):
     """Delete the cached snapshot directory to free disk."""
     folder = HF_CACHE_HUB / f"models--{model_id.replace('/', '--')}"
     if folder.exists():
         shutil.rmtree(folder, ignore_errors=True)
-
 
 def free_memory():
     gc.collect()
@@ -337,7 +299,6 @@ def free_memory():
             torch.cuda.empty_cache()
     except Exception:
         pass
-
 
 def preview(out):
     k = out.get("kind")
@@ -349,13 +310,11 @@ def preview(out):
     if k == "audio":  return {"has_dataUrl": bool(out.get("dataUrl"))}
     return {"kind": k}
 
-
 def write_result(rec):
     rec["timestamp"] = time.strftime("%Y-%m-%dT%H:%M:%S")
     with open(RESULTS_PATH, "a", encoding="utf-8") as f:
         f.write(json.dumps(rec) + "\n")
     return rec
-
 
 def _decode_data_url(s):
     """Decode a `data:<mime>;base64,<data>` string to raw bytes."""
@@ -367,10 +326,8 @@ def _decode_data_url(s):
     except Exception:
         return None
 
-
 def _safe_filename(model_id):
     return model_id.replace("/", "__")
-
 
 def save_outputs(model_id, task, out, payload):
     """Persist any visual artifacts the adapter returned to OUTPUTS_DIR.
@@ -384,7 +341,6 @@ def save_outputs(model_id, task, out, payload):
     base = task_dir / _safe_filename(model_id)
     saved = []
 
-    # Annotated overlays for boxes / masks
     annotated = out.get("annotated")
     if annotated:
         b = _decode_data_url(annotated)
@@ -397,19 +353,16 @@ def save_outputs(model_id, task, out, payload):
         if b:
             p = base.with_name(base.name + "_overlay.png")
             p.write_bytes(b); saved.append(p.name)
-    # Generated image / depth maps
     if out.get("kind") == "image" and out.get("dataUrl"):
         b = _decode_data_url(out["dataUrl"])
         if b:
             p = base.with_name(base.name + ".png")
             p.write_bytes(b); saved.append(p.name)
-    # Generated audio (TTS)
     if out.get("kind") == "audio" and out.get("dataUrl"):
         b = _decode_data_url(out["dataUrl"])
         if b:
             p = base.with_name(base.name + ".wav")
             p.write_bytes(b); saved.append(p.name)
-    # Always dump a sidecar JSON with the metadata (boxes coords, labels, legend, vector head, text)
     meta = {"model_id": model_id, "task": task, "kind": out.get("kind")}
     if out.get("kind") == "boxes":
         meta["boxes"] = out.get("boxes")
@@ -423,7 +376,6 @@ def save_outputs(model_id, task, out, payload):
     meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
     saved.append(meta_path.name)
     return saved
-
 
 def save_test_image_once():
     """Write the synthetic test image to OUTPUTS_DIR once so users can see
@@ -440,12 +392,10 @@ def save_test_image_once():
         if b:
             a.write_bytes(b)
 
-
 def run_one(model_id, task):
     t0 = time.time()
     base = {"model_id": model_id, "task": task}
 
-    # 1. probe size + gated
     size_bytes, gated = probe_repo_size(model_id)
     if gated:
         return write_result({**base, "status": "SKIP_GATED", "reason": "gated repo, no token", "elapsed": f"{time.time()-t0:.1f}s"})
@@ -454,7 +404,6 @@ def run_one(model_id, task):
     if size_bytes > MAX_BYTES:
         return write_result({**base, "status": "SKIP_TOOLARGE", "size_gb": round(size_bytes / 1e9, 2), "elapsed": f"{time.time()-t0:.1f}s"})
 
-    # 2. route + load + run via LocalML backend
     payload = TASK_PAYLOAD.get(task)
     if payload is None:
         return write_result({**base, "status": "SKIP_NO_PAYLOAD", "reason": f"no test payload for task {task!r}", "elapsed": f"{time.time()-t0:.1f}s"})
@@ -499,23 +448,16 @@ def run_one(model_id, task):
         "elapsed": f"{time.time()-t0:.1f}s",
     })
 
-    # 3. cleanup
     del adapter
     free_memory()
     cleanup_cache(model_id)
     return rec
 
-
 def main():
     args = sys.argv[1:]
     cases = list(CASES)
 
-    # Filtering
     if "small" in args:
-        # We can only filter by probed size - fall back: filter at runtime
-        # by skipping anything probed >1GB. The engine already calls probe_repo_size,
-        # so we pass through and let SKIP_TOOLARGE / size_gb sort it.
-        # For "small" mode, set a smaller cap.
         global MAX_BYTES
         MAX_BYTES = 1 * 1024 * 1024 * 1024
     for a in args:
@@ -552,7 +494,6 @@ def main():
     print(f"Summary: {sum(counters.values())} cases")
     for k, v in counters.items():
         print(f"  {k:18s} {v}")
-
 
 if __name__ == "__main__":
     main()

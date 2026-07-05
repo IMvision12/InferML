@@ -22,18 +22,14 @@ from server.openai_api.llm import (
 
 router = APIRouter(prefix="/v1")
 
-
 def _rid() -> str:
     return "chatcmpl-" + uuid.uuid4().hex[:24]
-
 
 def _now() -> int:
     return int(time.time())
 
-
 def _finish_reason(completion_tokens: int, params: dict) -> str:
     return "length" if completion_tokens >= int(params.get("max_tokens") or 512) else "stop"
-
 
 def _params_from(payload: dict) -> dict:
     return {
@@ -43,7 +39,6 @@ def _params_from(payload: dict) -> dict:
         "stop": payload.get("stop"),
     }
 
-
 @router.get("/models")
 async def list_models():
     eng = deps.engine()
@@ -51,7 +46,6 @@ async def list_models():
     cur = eng.current_llm_id()
     if cur and cur not in ids:
         ids.append(cur)
-    # Also surface installed text-generation models so clients can pick one.
     try:
         from server.store_service import list_installed
         for mid, meta in list_installed().items():
@@ -64,7 +58,6 @@ async def list_models():
         "object": "list",
         "data": [{"id": mid, "object": "model", "created": created, "owned_by": "localml"} for mid in ids],
     }
-
 
 @router.post("/chat/completions")
 async def chat_completions(payload: dict = Body(...)):
@@ -103,7 +96,6 @@ async def chat_completions(payload: dict = Body(...)):
             print("[/v1/chat/completions] " + traceback.format_exc(), flush=True)
             return JSONResponse(status_code=500, content=_err(actionable_error(e) or repr(e), "server_error"))
 
-    # Phase 4 plugs tool-call parsing in here (parse `text` → tool_calls).
     message = {"role": "assistant", "content": text}
     finish = _finish_reason(ctoks, params)
     if tools:
@@ -129,13 +121,10 @@ async def chat_completions(payload: dict = Body(...)):
         },
     }
 
-
-# ---------- streaming ----------
-
 async def _stream_response(eng, model_req, messages, tools, tool_choice, params):
     rid = _rid()
     created = _now()
-    include_usage = False  # set below once we know the model id
+    include_usage = False
 
     async with deps.INFERENCE_LOCK:
         deps.clear_stop()
@@ -146,8 +135,6 @@ async def _stream_response(eng, model_req, messages, tools, tool_choice, params)
             yield "data: [DONE]\n\n"
             return
 
-        # Tool calls can't be reliably streamed as native deltas across families
-        # - buffer the generation, parse, and emit a single tool_calls delta.
         if tools:
             try:
                 text, _p, ctoks = await deps.run_blocking(
@@ -176,7 +163,6 @@ async def _stream_response(eng, model_req, messages, tools, tool_choice, params)
             yield "data: [DONE]\n\n"
             return
 
-        # Plain streaming path.
         try:
             input_ids = await deps.run_blocking(build_inputs, tokenizer, messages, None)
         except Exception as e:
@@ -201,7 +187,6 @@ async def _stream_response(eng, model_req, messages, tools, tool_choice, params)
 
         yield _sse_final(rid, created, model_id, "stop")
         yield "data: [DONE]\n\n"
-
 
 async def _aiter_sync(gen_factory):
     """Drain a blocking generator (running on a worker thread) as an async
@@ -228,9 +213,6 @@ async def _aiter_sync(gen_factory):
             raise val
         yield val
 
-
-# ---------- SSE frame builders ----------
-
 def _chunk_obj(rid, created, model_id, delta, finish=None):
     return {
         "id": rid,
@@ -240,19 +222,15 @@ def _chunk_obj(rid, created, model_id, delta, finish=None):
         "choices": [{"index": 0, "delta": delta, "finish_reason": finish}],
     }
 
-
 def _sse_chunk(rid, created, model_id, delta):
     return "data: " + json.dumps(_chunk_obj(rid, created, model_id, delta)) + "\n\n"
-
 
 def _sse_final(rid, created, model_id, finish):
     return "data: " + json.dumps(_chunk_obj(rid, created, model_id, {}, finish)) + "\n\n"
 
-
 def _sse_error(rid, created, model_id, message):
     obj = _chunk_obj(rid, created, model_id, {"content": f"[error] {message}"}, "stop")
     return "data: " + json.dumps(obj) + "\n\n"
-
 
 def _err(message: str, etype: str) -> dict:
     return {"error": {"message": message, "type": etype, "code": None}}

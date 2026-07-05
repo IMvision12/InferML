@@ -11,9 +11,8 @@ import os
 from pathlib import Path
 
 _HERE = Path(__file__).resolve()
-PYTHON_DIR = _HERE.parents[1]      # .../localml/python
-REPO_ROOT = _HERE.parents[2]       # .../localml
-
+PYTHON_DIR = _HERE.parents[1]
+REPO_ROOT = _HERE.parents[2]
 
 def webui_dir() -> Path:
     env = os.environ.get("LOCALML_WEBUI_DIR")

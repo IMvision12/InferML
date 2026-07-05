@@ -20,45 +20,35 @@ from pathlib import Path
 HERE = Path(__file__).parent.resolve()
 sys.path.insert(0, str(HERE))
 
-# Reuse the app's cache so already-downloaded models are free.
 import os
 os.environ.setdefault("HF_HOME", str(Path(os.environ.get("APPDATA", "")) / "LocalML" / "hf-cache"))
 
-
 from routing import inspect_model, pick_adapter  # noqa: E402
 from io_utils import resolve_device  # noqa: E402
-
 
 def _make_test_image():
     from PIL import Image, ImageDraw
     img = Image.new("RGB", (384, 256), (40, 60, 90))
     d = ImageDraw.Draw(img)
-    # A "person-like" silhouette + "racket-like" rectangle so detection has something to find.
-    d.ellipse((120, 30, 180, 90), fill=(240, 200, 180))        # head
-    d.rectangle((110, 95, 200, 220), fill=(220, 220, 220))     # body
-    d.rectangle((210, 130, 320, 180), outline=(200, 30, 30), width=4)  # "racket"
+    d.ellipse((120, 30, 180, 90), fill=(240, 200, 180))
+    d.rectangle((110, 95, 200, 220), fill=(220, 220, 220))
+    d.rectangle((210, 130, 320, 180), outline=(200, 30, 30), width=4)
     buf = io.BytesIO(); img.save(buf, format="PNG")
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
-
 
 def _make_test_audio(seconds=1.5):
     import numpy as np
     import soundfile as sf
     sr = 16000
     t = np.linspace(0, seconds, int(sr * seconds), endpoint=False, dtype=np.float32)
-    # Mix two tones so Whisper doesn't transcribe empty silence.
     audio = 0.3 * np.sin(2 * np.pi * 440 * t) + 0.2 * np.sin(2 * np.pi * 880 * t)
     buf = io.BytesIO(); sf.write(buf, audio, sr, format="WAV")
     return "data:audio/wav;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
-
 TEST_IMG = _make_test_image()
 TEST_AUDIO = _make_test_audio()
 
-
-# Each case: (suite, name, model_id, payload, expected_kind, validator)
 CASES = [
-    # --- already-cached suite (quick) ---
     ("quick", "text-gen: Qwen3-0.6B",
      "Qwen/Qwen3-0.6B",
      {"input": {"kind": "text", "text": "The capital of France is"},
@@ -79,18 +69,12 @@ CASES = [
      "masks",
      lambda o: o["overlay"].startswith("data:image/png;base64,") and isinstance(o["legend"], list)),
 
-    # DETR's segmentation head - same architecture as the detection
-    # checkpoint but a different fine-tune, so it exercises the panoptic
-    # post-processing path inside the HF image-segmentation pipeline. Worth
-    # smoke-testing because DETR's the canonical "one architecture, two
-    # downstream tasks" case in supported_architectures.json.
     ("quick", "segmentation: detr-panoptic",
      "facebook/detr-resnet-50-panoptic",
      {"input": {"kind": "image", "dataUrl": TEST_IMG}, "params": {}},
      "masks",
      lambda o: o["overlay"].startswith("data:image/png;base64,") and isinstance(o["legend"], list)),
 
-    # --- downloads-required suite (all) ---
     ("all", "image-classification: vit-tiny",
      "WinKawaks/vit-tiny-patch16-224",
      {"input": {"kind": "image", "dataUrl": TEST_IMG}, "params": {"top_k": 3}},
@@ -116,7 +100,6 @@ CASES = [
      "labels",
      lambda o: isinstance(o["labels"], list)),
 ]
-
 
 def run_case(case):
     suite, name, model_id, payload, expected_kind, validator = case
@@ -155,7 +138,6 @@ def run_case(case):
         "preview": _preview(out),
     }
 
-
 def _preview(o):
     k = o.get("kind")
     if k == "text":   return {"text": o["text"][:80]}
@@ -165,7 +147,6 @@ def _preview(o):
                               "labels": [l["label"] for l in (o.get("legend") or [])[:5]],
                               "overlay_bytes": len(o.get("overlay", ""))}
     return {"kind": k}
-
 
 def main():
     suites = set(sys.argv[1:]) or {"quick"}
@@ -178,7 +159,6 @@ def main():
         results.append(r)
         print(json.dumps(r, indent=2, default=str))
         print()
-    # Summary
     pas = sum(1 for r in results if r["status"] == "PASS")
     fail = sum(1 for r in results if r["status"] != "PASS")
     print("=" * 60)
@@ -186,7 +166,6 @@ def main():
     for r in results:
         mark = "[PASS]" if r["status"] == "PASS" else "[FAIL]"
         print(f"  {mark} {r['name']:45s} {r['status']:8s} {r['elapsed']}")
-
 
 if __name__ == "__main__":
     main()

@@ -20,16 +20,14 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Callable
 
-
 @dataclass
 class LoadedPipeline:
     """Everything a variant might want to reuse across calls."""
     info: dict
     device: Any
-    pipe: Any = None          # HF pipeline instance (nullable - variants may bypass it)
-    model: Any = None         # raw model, for variants that need direct .generate()
-    processor: Any = None     # processor/tokenizer/image_processor
-
+    pipe: Any = None
+    model: Any = None
+    processor: Any = None
 
 class TaskVariant(ABC):
     """One way to run a task. The handler tries variants in order; first
@@ -43,18 +41,14 @@ class TaskVariant(ABC):
     def run(self, state: LoadedPipeline, inputs: dict, params: dict) -> dict:
         """Produce a dict matching the task's declared output kind."""
 
-
 class TaskHandler(ABC):
     """One per task family (object-detection, image-segmentation, ...)."""
 
-    # Required:
-    name: str                           # e.g. "object-detection"
-    output_kind: str                    # one of the kinds in output_kinds.py
-    variants: list[TaskVariant]         # tried in order
-    default_params: dict                # merged with request params
+    name: str
+    output_kind: str
+    variants: list[TaskVariant]
+    default_params: dict
 
-    # Pipeline task name to pass to transformers.pipeline(...). Falls back to
-    # `name`. Subclasses override when the HF task name differs.
     def runtime_task(self) -> str:
         return getattr(self, "_runtime_task", self.name)
 
@@ -64,7 +58,6 @@ class TaskHandler(ABC):
                 if v.can_handle(info, inputs):
                     return v
             except Exception:
-                # A variant's can_handle should not raise; if it does, skip it.
                 continue
         raise RuntimeError(f"No variant of {self.name!r} accepted inputs={list(inputs)} model={info.get('model_id')}")
 

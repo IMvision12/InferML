@@ -8,14 +8,13 @@ const CHAT_TASKS = new Set(['text-generation', 'image-text-to-text', 'conversati
 function App() {
   const [bootReady, setBootReady] = useState(false);
   const [welcome, setWelcome] = useState(true);
-  // Hardware-onboarding screen shows after Welcome → Get started, but only
-  // when the Python runtime isn't ready yet. It exposes system info + the
-  // CPU/GPU runtime picker (no HF token; that lives in Settings).
+
+
   const [onboard, setOnboard] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsSection, setSettingsSection] = useState('general');
   const openSettings = (section) => { setSettingsSection(section || 'general'); setSettingsOpen(true); };
-  const [view, setView] = useState('hub'); // 'hub' | 'session'
+  const [view, setView] = useState('hub'); 
   const [activeSession, setActiveSession] = useState(null);
   const [theme, setTheme] = useState(TWEAK_DEFAULTS.theme);
   const [tweaksOpen, setTweaksOpen] = useState(false);
@@ -26,32 +25,27 @@ function App() {
   const [installedModels, setInstalledModels] = useState({});
   const [maximized, setMaximized] = useState(false);
   const [version, setVersion] = useState('0.1.0');
-  // Seed from a synchronous filesystem snapshot at first render so that
-  // `pyStatus.runtimeInstalled` is correct on the very first paint. Without
-  // this seed, the boot useEffect's async `tasks.status()` call leaves the
-  // initial state at { ready: false, runtimeInstalled: false }, and a fast
-  // click of Welcome → "Let's get started" briefly flashes the Hardware
-  // screen for users whose runtime is already installed. The sync IPC walks
-  // a single fs.existsSync (~1 ms) so it's safe to block on.
+
+
+
+
+
   const [pyStatus, setPyStatus] = useState(() => {
     const seed = window.localml?.tasks?.statusSync?.();
     if (seed && typeof seed === 'object') return seed;
     return { ready: false, runtimeInstalled: false };
   });
-  // Bumped each time the user clicks the sidebar Home button so the embedded
-  // ModelHub can clear its category tab + search query and snap back to the
-  // landing ("What would you like to run today?") view, even when the parent
-  // view is already 'hub' and the component would otherwise not re-mount.
-  const [hubResetSignal, setHubResetSignal] = useState(0);
-  const [pySetup, setPySetup] = useState(null); // { running, log[], step, error }
-  const [updatingTo, setUpdatingTo] = useState(null); // version string while a quit-and-install is in flight
-  // Available-update advisory shown as a pill in the titlebar. Populated by
-  // a one-shot check at boot and a periodic re-check; cleared once the user
-  // is on the latest version. Independent of `updatingTo` (which only flips
-  // true during the final quit-and-install).
-  const [updateInfo, setUpdateInfo] = useState(null); // { hasUpdate, latestVersion, currentVersion, ... } | null
 
-  // Boot
+
+
+  const [hubResetSignal, setHubResetSignal] = useState(0);
+  const [pySetup, setPySetup] = useState(null); 
+  const [updatingTo, setUpdatingTo] = useState(null); 
+
+
+
+  const [updateInfo, setUpdateInfo] = useState(null); 
+
   useEffect(() => {
     (async () => {
       try {
@@ -66,12 +60,10 @@ function App() {
     })();
   }, []);
 
-  // Hardware
   useEffect(() => {
-    // The subscribe call lands AFTER `await hw.get()` resolves, but the
-    // cleanup may have already run by then if the component unmounted (e.g.
-    // theme switch causes a fast remount). The `cancelled` flag tears down
-    // the late-arriving subscription so listeners don't leak.
+
+
+
     let stop;
     let cancelled = false;
     (async () => {
@@ -89,7 +81,6 @@ function App() {
     };
   }, []);
 
-  // Sessions list
   const reloadSessions = useCallback(async () => {
     try { setSessions(await window.localml.chats.list() || []); } catch { setSessions([]); }
   }, []);
@@ -99,26 +90,21 @@ function App() {
     return () => { if (unsub) unsub(); };
   }, [reloadSessions]);
 
-  // Installed models (auto-refresh when view changes or hub may have updated)
   const reloadInstalled = useCallback(async () => {
     try { setInstalledModels((await window.localml?.hf.installed()) || {}); } catch {}
   }, []);
   useEffect(() => { reloadInstalled(); }, [reloadInstalled, view]);
-  // Listen for the main-process "installs.json was reset" event so the Hub
-  // updates the moment the user clears the cache, without waiting for a view
-  // change to trigger reloadInstalled().
+
+
   useEffect(() => {
     const off = window.localml?.hf?.onInstallsChanged?.(() => reloadInstalled());
     return () => { try { off && off(); } catch {} };
   }, [reloadInstalled]);
 
-  // Available-update probe. Runs once at boot and then every 2 days. The
-  // main process caches the GitHub Releases response for 10 min so a flurry
-  // of re-renders won't burn through the 60-req/hr unauthenticated quota.
-  // 2 days is the right cadence for a desktop app: long enough that we're
-  // not pinging GitHub on every short session, short enough that a user
-  // who keeps the app open for a week sees a new release within 48 h of
-  // it shipping. The user can also force a check from Settings → General.
+
+
+
+
   useEffect(() => {
     let alive = true;
     const probe = async () => {
@@ -134,19 +120,15 @@ function App() {
     return () => { alive = false; clearInterval(id); };
   }, []);
 
-  // Python runtime status
   const refreshPyStatus = useCallback(async () => {
     try { setPyStatus((await window.localml?.tasks.status()) || { ready: false }); } catch {}
   }, []);
   useEffect(() => { refreshPyStatus(); }, [refreshPyStatus]);
 
-  // Subscribe to setup progress events.
-  // uv / pip / tar emit hundreds of lines per second during install; running
-  // setPySetup on every line synchronously thrashed the renderer (Windows
-  // marked the window "(Not Responding)" mid-install). Two mitigations:
-  //   1. Buffer events between rAF frames and apply at most ~30 fps.
-  //   2. Cap the log array at MAX_LOG lines so the React reconciler doesn't
-  //      walk a 10k-item list on every render.
+
+
+
+
   useEffect(() => {
     const MAX_LOG = 500;
     let pendingLog = [];
@@ -187,22 +169,20 @@ function App() {
     });
     return () => {
       if (unsub) unsub();
-      // Flush anything still pending so the user sees the final lines.
+
       if (rafScheduled) flush();
     };
   }, []);
 
   const runPySetup = async (opts) => {
-    // opts: { mode?: 'bundle'|'pip', accelerator?: 'cpu'|'gpu' }
+
     setPySetup({ running: true, log: [], step: 'Starting…', error: null });
     const res = await window.localml?.tasks.setup(opts);
     if (res?.ok) {
       setPySetup(prev => ({ ...(prev || {}), running: false, done: true, step: 'Ready' }));
-      // Setup's verifyInstallation step has already proven the venv works.
-      // Flip the UI to "ready" immediately instead of waiting on tasks:status
-      // to re-probe (which spawns 3 cold-start torch imports = ~5s on Windows).
-      // Then refresh in the background so the canonical state catches up
-      // without blocking the user.
+
+
+
       const accel = opts?.accelerator;
       setPyStatus(prev => ({
         ...(prev || {}),
@@ -221,18 +201,15 @@ function App() {
     }
   };
 
-  // Window state
   useEffect(() => {
     const unsub = window.localml?.window.onState(s => setMaximized(!!s?.maximized));
     window.localml?.window.isMaximized().then(m => setMaximized(!!m));
     return () => { if (unsub) unsub(); };
   }, []);
 
-  // Themed "Installing update" overlay. The Settings UpdateCheckButton fires
-  // these events when the user clicks "Install & restart" so we can show a
-  // full-screen, in-theme transition card while the OS-silent NSIS install
-  // does its thing in the background. Without this the user briefly saw the
-  // native NSIS installer wizard, which clashes hard with the rest of the UI.
+
+
+
   useEffect(() => {
     const onStart  = (e) => setUpdatingTo(e.detail?.version || 'latest');
     const onFailed = () => setUpdatingTo(null);
@@ -244,7 +221,6 @@ function App() {
     };
   }, []);
 
-  // Theme persist - apply the right body class for the selected theme.
   useEffect(() => {
     const themeClasses = ['light', 'theme-nord', 'theme-dracula', 'theme-tokyo', 'theme-catppuccin', 'theme-gruvbox', 'theme-onedark'];
     document.body.classList.remove(...themeClasses);
@@ -255,11 +231,10 @@ function App() {
     else if (theme === 'catppuccin') document.body.classList.add('theme-catppuccin');
     else if (theme === 'gruvbox')    document.body.classList.add('theme-gruvbox');
     else if (theme === 'onedark')    document.body.classList.add('theme-onedark');
-    // 'dark' = no class (uses :root defaults)
+
     window.localml?.settings.save({ theme }).catch(() => {});
   }, [theme]);
 
-  // Edit-mode bridge
   useEffect(() => {
     const handler = (e) => {
       if (!e.data) return;
@@ -271,7 +246,6 @@ function App() {
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  // Shortcuts
   useEffect(() => {
     const onKey = (e) => {
       const mod = e.metaKey || e.ctrlKey;
@@ -286,12 +260,10 @@ function App() {
   }, []);
 
   const finishWelcome = () => {
-    // After Welcome's "Get started", show the Hardware/onboarding screen if
-    // the Python runtime isn't installed yet. Skip straight to Home if it is.
-    // We check BOTH `ready` (full probe) and `runtimeInstalled` (sync
-    // filesystem hint, seeded synchronously at App init via tasks.statusSync)
-    // so a Welcome click that races ahead of the async tasks.status() refresh
-    // doesn't pop Onboarding for users who already have a working venv.
+
+
+
+
     const alreadyInstalled = pyStatus?.ready || pyStatus?.runtimeInstalled;
     if (!alreadyInstalled) setOnboard(true);
     setWelcome(false);
@@ -308,7 +280,7 @@ function App() {
   const openHubInstalled = () => { setView('hub'); setActiveSession(null); setHubInstalledMode(true); };
   const openSession = (id) => { setView('session'); setActiveSession(id); };
   const startSessionWithModel = async (modelId) => {
-    // Always read fresh installed metadata - closure state may be stale after recent installs.
+
     const fresh = await window.localml?.hf.installed().catch(() => null);
     const meta = (fresh && fresh[modelId]) || installedModels[modelId] || {};
     const task = meta?.task || '';
@@ -468,9 +440,8 @@ function App() {
                     isActive={activeSession === s.id}
                     onOpen={openSession}
                     onDeleted={(id) => {
-                      // If the deleted session was the one we were viewing,
-                      // bounce back to the Home view so the workspace doesn't
-                      // try to render a now-missing chat.
+
+
                       if (activeSession === id) { setActiveSession(null); setView('hub'); }
                     }}
                   />
@@ -530,16 +501,14 @@ function App() {
 function renderWorkspace(session, installedModels, onSaved) {
   const modelId = session.modelId || session.model;
   const installedMeta = (modelId && installedModels[modelId]) || null;
-  // Prefer the session's persisted task - it's authoritative for the routing decision.
+
   const task = session.task || installedMeta?.task || '';
   const meta = installedMeta || { task };
 
-  // Florence-2 ships under `image-text-to-text` like every other VLM, but its
-  // value is the structured-output task tokens (OD, OCR-with-region, phrase
-  // grounding, dense region captions, …). The chat workspace only renders
-  // text and would never expose the picker, so route Florence to the task
-  // workspace instead - it has the existing `florence_task` selector + the
-  // box / mask renderers needed for those structured outputs.
+
+
+
+
   const isFlorence = /florence-?2/i.test(modelId || '');
   if (CHAT_TASKS.has(task) && !isFlorence) {
     return (
@@ -641,9 +610,7 @@ function sbCpu(hw) {
   if (typeof v !== 'number') return '- %';
   return `${v.toFixed(2)} %`;
 }
-// GPU stat for the status bar - Windows/Linux only. On macOS the GPU shares
-// system RAM (unified memory), so showing it again would just duplicate the
-// RAM number. Returns null when there's nothing useful to display.
+
 function sbGpu(hw) {
   if (!hw) return null;
   if (hw?.os?.platform === 'darwin' || hw?.gpu?.unified) return null;
@@ -671,11 +638,6 @@ function timeGreeting() {
   return 'Good evening';
 }
 
-// Sidebar session row with hover-revealed kebab menu (Pin / Rename / Delete).
-// State machine:
-//   idle        → click row opens session
-//   menuOpen    → kebab clicked; click outside or pick an action closes it
-//   renaming    → 'Rename' picked; .t1 swaps to an input until Enter / blur
 function ChatItem({ session, isActive, onOpen, onDeleted }) {
   const { useState, useEffect, useRef } = React;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -686,10 +648,8 @@ function ChatItem({ session, isActive, onOpen, onDeleted }) {
   const rowRef = useRef(null);
   const menuRef = useRef(null);
 
-  // Click-outside / Escape / scroll to dismiss the menu. The menu is portalled
-  // to fixed coords (the sidebar has `overflow-y: auto` and would clip an
-  // absolutely-positioned menu near the bottom), so the outside-click test
-  // checks BOTH the row and the menu's own DOM node.
+
+
   useEffect(() => {
     if (!menuOpen) return;
     const onDown = (e) => {
@@ -701,7 +661,7 @@ function ChatItem({ session, isActive, onOpen, onDeleted }) {
     const onScroll = () => setMenuOpen(false);
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onKey);
-    // capture phase so we catch scrolls on any ancestor (sidebar, body…)
+
     document.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', onScroll);
     return () => {
@@ -717,8 +677,7 @@ function ChatItem({ session, isActive, onOpen, onDeleted }) {
     if (menuOpen) { setMenuOpen(false); return; }
     const rect = e.currentTarget.getBoundingClientRect();
     const MENU_W = 150;
-    // Anchor below the kebab, right-aligned. Flip up if there's not enough
-    // room below (e.g. the row is at the bottom of the viewport).
+
     const spaceBelow = window.innerHeight - rect.bottom;
     const top = spaceBelow < 140 ? rect.top - 124 : rect.bottom + 4;
     const left = Math.max(8, Math.min(window.innerWidth - MENU_W - 8, rect.right - MENU_W));
@@ -728,7 +687,7 @@ function ChatItem({ session, isActive, onOpen, onDeleted }) {
 
   const togglePin = async () => {
     setMenuOpen(false);
-    // No `updatedAt` in the patch so an unpin doesn't kick the row to "just now".
+
     try { await window.localml?.chats.patch(session.id, { pinned: !session.pinned }); } catch {}
   };
 
@@ -837,11 +796,6 @@ function ChatItem({ session, isActive, onOpen, onDeleted }) {
   );
 }
 
-// Full-screen overlay shown for the brief moment between the user clicking
-// "Install & restart" and electron-updater quitting the app to apply the
-// update. With NSIS oneClick:true + quitAndInstall(silent=true), there is
-// no Windows-native installer wizard at all - this overlay is the only
-// thing the user sees during the transition.
 function UpdatingOverlay({ version }) {
   return (
     <div className="updating-overlay">
@@ -856,10 +810,6 @@ function UpdatingOverlay({ version }) {
   );
 }
 
-// Themed confirmation modal - replaces window.confirm() so destructive
-// actions match the rest of the UI. Keyboard: Esc cancels, Enter confirms.
-// The backdrop click cancels too. The confirm button auto-focuses so a
-// keyboard user can just press Enter.
 function ConfirmDialog({ open, title, message, confirmLabel = 'OK', cancelLabel = 'Cancel', danger = false, onConfirm, onCancel }) {
   const { useEffect, useRef } = React;
   const confirmRef = useRef(null);
@@ -871,7 +821,7 @@ function ConfirmDialog({ open, title, message, confirmLabel = 'OK', cancelLabel 
       if (e.key === 'Enter')  { e.stopPropagation(); onConfirm && onConfirm(); }
     };
     window.addEventListener('keydown', onKey, true);
-    // Focus the confirm button on open so Enter works without a click first.
+
     setTimeout(() => confirmRef.current?.focus(), 0);
     return () => window.removeEventListener('keydown', onKey, true);
   }, [open, onCancel, onConfirm]);

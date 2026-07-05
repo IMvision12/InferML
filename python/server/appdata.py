@@ -17,7 +17,6 @@ try:
 except Exception:  # pragma: no cover - platformdirs is a declared dependency
     user_data_dir = None
 
-
 def data_dir() -> Path:
     override = os.environ.get("LOCALML_DATA_DIR")
     if override:
@@ -29,28 +28,22 @@ def data_dir() -> Path:
     base.mkdir(parents=True, exist_ok=True)
     return base
 
-
 def chats_dir() -> Path:
     d = data_dir() / "chats"
     d.mkdir(parents=True, exist_ok=True)
     return d
 
-
 def settings_file() -> Path:
     return data_dir() / "settings.json"
-
 
 def installs_file() -> Path:
     return data_dir() / "installs.json"
 
-
 def hf_token_file() -> Path:
     return data_dir() / "hf-token.json"
 
-
 def chat_file(chat_id: str) -> Path:
     return chats_dir() / f"{chat_id}.json"
-
 
 def read_json(path: Path, fallback):
     try:
@@ -58,11 +51,9 @@ def read_json(path: Path, fallback):
     except Exception:
         return fallback
 
-
 def write_json(path: Path, data) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    # Atomic write: temp file in the same dir, then replace.
     fd, tmp = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:

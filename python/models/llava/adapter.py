@@ -5,11 +5,7 @@ from adapters.base import Adapter
 import output_kinds as ok
 from io_utils import decode_image, resolve_device, torch_dtype_for_device
 
-
-# Trust list. Official LLaVA orgs that publish weights without backdoors.
-# Other owners need explicit `trust_remote_code: true` in model_overrides.json.
 _TRUSTED_LLAVA_OWNERS = {"llava-hf", "liuhaotian"}
-
 
 class LlavaAdapter(Adapter):
     @classmethod
@@ -22,8 +18,6 @@ class LlavaAdapter(Adapter):
         from transformers import AutoProcessor, LlavaForConditionalGeneration
         self.info = info
         dtype = torch_dtype_for_device()
-        # See _TRUSTED_LLAVA_OWNERS. Random forks need an explicit override
-        # before we'll execute their custom modeling_*.py during load.
         owner = (info.get("model_id") or "").split("/")[0].lower()
         trust_default = owner in _TRUSTED_LLAVA_OWNERS
         trust = bool(self.override.get("trust_remote_code", trust_default))
@@ -31,9 +25,6 @@ class LlavaAdapter(Adapter):
         try:
             self.model = LlavaForConditionalGeneration.from_pretrained(info["model_id"], torch_dtype=dtype)
         except Exception:
-            # LLaVA-Next, LLaVA-1.6 etc. need their specific class. Try the
-            # modern image-text-to-text auto-class first; if that's missing
-            # (very old transformers), fall through to AutoModelForCausalLM.
             try:
                 from transformers import AutoModelForImageTextToText
                 self.model = AutoModelForImageTextToText.from_pretrained(
@@ -56,8 +47,6 @@ class LlavaAdapter(Adapter):
         img = decode_image(inputs["dataUrl"])
         text = (inputs.get("text") or "").strip() or "Describe this image."
 
-        # LLaVA's template expects <image> tokens interleaved with text. The
-        # processor handles this when you pass `conversation` or `text` + images.
         conversation = [{
             "role": "user",
             "content": [
@@ -68,8 +57,6 @@ class LlavaAdapter(Adapter):
         try:
             prompt = self.processor.apply_chat_template(conversation, add_generation_prompt=True)
         except Exception:
-            # Older LLaVA processors don't have apply_chat_template. Fall back
-            # to the classic "USER: <image>\n{prompt} ASSISTANT:" format.
             prompt = f"USER: <image>\n{text} ASSISTANT:"
 
         inputs_t = self.processor(images=img, text=prompt, return_tensors="pt")
@@ -87,7 +74,6 @@ class LlavaAdapter(Adapter):
         with torch.no_grad():
             out = self.model.generate(**inputs_t, **gen_kwargs)
         decoded = self.processor.decode(out[0], skip_special_tokens=True)
-        # Strip the prompt echo that LLaVA returns.
         if "ASSISTANT:" in decoded:
             decoded = decoded.split("ASSISTANT:", 1)[1].strip()
         return ok.text(decoded)

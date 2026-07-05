@@ -7,14 +7,13 @@ from typing import Iterable
 import base64
 import io
 
-
 def _font(size: int):
     """Pick a cross-platform monospace font; fall back to PIL's bitmap default."""
     from PIL import ImageFont
     candidates = [
-        "DejaVuSansMono.ttf",        # Linux / many distros
-        "Consola.ttf", "consola.ttf",  # Windows
-        "Menlo.ttc",                  # macOS
+        "DejaVuSansMono.ttf",
+        "Consola.ttf", "consola.ttf",
+        "Menlo.ttc",
         "Courier New.ttf", "cour.ttf",
         "Arial.ttf", "arial.ttf",
     ]
@@ -25,15 +24,12 @@ def _font(size: int):
             continue
     return ImageFont.load_default()
 
-
 def _measure(font, text):
     try:
         bbox = font.getbbox(text)
         return bbox[2] - bbox[0], bbox[3] - bbox[1]
     except Exception:
-        # Very old PIL - very rough estimate
         return len(text) * (font.size if hasattr(font, "size") else 10) * 0.6, 12
-
 
 def _layout_labels(items: list, W: int, H: int, font):
     """Greedy top-down placement with vertical cascade on collision.
@@ -52,11 +48,10 @@ def _layout_labels(items: list, W: int, H: int, font):
         text = f"{it.get('label', 'object')} {int(round(it.get('score', 0) * 100))}%"
         tw, _ = _measure(font, text)
         label_w = min(int(tw + 10), W)
-        # Prefer above the box, clamped horizontally.
         lx = max(0, min(int(x), W - label_w))
         ly = int(y) - label_h - 1
         if ly < 0:
-            ly = int(y)  # fall back to inside the top of the box
+            ly = int(y)
         raw.append({
             "idx": idx,
             "boxX": x, "boxY": y, "boxW": w, "boxH": h,
@@ -64,8 +59,6 @@ def _layout_labels(items: list, W: int, H: int, font):
             "text": text,
         })
 
-    # Sort desired positions top-down so higher labels are placed first and
-    # later ones cascade downward.
     order = sorted(raw, key=lambda c: (c["labelY"], c["labelX"]))
     placed = []
 
@@ -88,7 +81,6 @@ def _layout_labels(items: list, W: int, H: int, font):
 
     return sorted(raw, key=lambda c: c["idx"])
 
-
 def draw_boxes(img, items, accent=(100, 220, 180)) -> "Image":
     """Return a copy of `img` with boxes + labels drawn. `accent` is RGB."""
     from PIL import ImageDraw
@@ -108,12 +100,10 @@ def draw_boxes(img, items, accent=(100, 220, 180)) -> "Image":
             [L["labelX"], L["labelY"], L["labelX"] + L["labelW"], L["labelY"] + L["labelH"]],
             fill=accent,
         )
-        # Center text vertically in the label box.
         ty = L["labelY"] + max(0, (L["labelH"] - font_size) // 2) - 1
         draw.text((L["labelX"] + 5, ty), L["text"], fill=(5, 19, 26), font=font)
 
     return out
-
 
 def composite_masks(img, overlay_rgba) -> "Image":
     """Alpha-blend `overlay_rgba` onto `img` and return an RGB composite."""
@@ -123,7 +113,6 @@ def composite_masks(img, overlay_rgba) -> "Image":
         overlay_rgba = overlay_rgba.resize(base.size, Image.NEAREST)
     base.alpha_composite(overlay_rgba)
     return base.convert("RGB")
-
 
 def encode_png_data_url(pil_image) -> str:
     buf = io.BytesIO()

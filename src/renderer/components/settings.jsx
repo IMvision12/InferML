@@ -15,8 +15,7 @@ function Settings({
 }) {
   const [section, setSection] = useStateS(initialSection || 'general');
 
-  // Sync the active section when callers deep-link into a specific tab
-  // (e.g. the gated-download prompt opens settings on the HF Token tab).
+
   useEffectS(() => {
     if (open && initialSection) setSection(initialSection);
   }, [open, initialSection]);
@@ -75,7 +74,6 @@ function Settings({
   );
 }
 
-// A single settings row: label + optional sub-label on the left, control on the right.
 function Row({ title, sub, value, control, onClick }) {
   return (
     <div className={`s-row ${onClick ? 'clickable' : ''}`} onClick={onClick}>
@@ -94,19 +92,16 @@ function GeneralSection({ version, hw, pyStatus, refreshPyStatus }) {
   const [logsPath, setLogsPath] = useStateS('');
   const [cacheStat, setCacheStat] = useStateS({ bytes: null, files: null, paths: [] });
   const [runtimeStat, setRuntimeStat] = useStateS({ bytes: null, files: null });
-  // Per-row loading flag. True while the IPC walk-and-stat the directory is
-  // in flight. Used to render "Calculating…" and disable the Clean button so
-  // a user can't fire Clean against a stale 0 B reading on a large cache that
-  // hasn't been measured yet.
+
+
+
   const [sizeLoading, setSizeLoading] = useStateS({ hf: true, py: true });
-  const [confirmKey, setConfirmKey] = useStateS(null); // 'hf' | 'py' | null
-  const [busy, setBusy] = useStateS(null); // 'hf' | 'py' | null
+  const [confirmKey, setConfirmKey] = useStateS(null); 
+  const [busy, setBusy] = useStateS(null); 
   const [error, setError] = useStateS(null);
 
-  // A near-empty cache walks in <10 ms - faster than the browser can paint -
-  // so without a floor the "Calculating…" state never visibly appears for
-  // small/empty rows. Hold each row's loading flag for at least MIN_HOLD_MS
-  // so the indicator is always perceptible, even if the IPC returns instantly.
+
+
   const refreshSizes = async () => {
     const MIN_HOLD_MS = 350;
     const start = performance.now();
@@ -146,10 +141,8 @@ function GeneralSection({ version, hw, pyStatus, refreshPyStatus }) {
     return () => { alive = false; };
   }, []);
 
-  // Refresh the Models cache row whenever installs.json mutates - i.e.,
-  // when the user uninstalls a model from the Hub while Settings is open.
-  // Without this, the row keeps showing the pre-uninstall byte count until
-  // the user closes and reopens Settings.
+
+
   useEffectS(() => {
     const off = window.localml?.hf?.onInstallsChanged?.(() => refreshSizes());
     return () => { try { off && off(); } catch {} };
@@ -361,10 +354,9 @@ function HardwareSection({ hw, pyStatus, pySetup, runSetup, refreshPyStatus }) {
               : ready
                 ? <span className="s-pill ok"><span className="dot"/> ready</span>
                 : (() => {
-                    // Fresh install. Offer install buttons based on what's
-                    // available. NVIDIA users see both CPU + GPU; otherwise
-                    // just CPU. Apple Silicon users get an MPS-flavored CPU
-                    // build (suggestAccelerator handles the platform check).
+
+
+
                     const suggested = pyStatus?.suggestedAccelerator || 'cpu';
                     const hasNvidia = !!pyStatus?.hasNvidia && !isMac;
                     return (
@@ -445,32 +437,17 @@ function HFSection() {
   );
 }
 
-
-// "Check for updates" control used in App Info → Version row.
-//
-// States:
-//   idle → checking → (uptodate | available | error)
-//   available (Win/Linux) → user confirms via native dialog → downloading
-//   downloading → downloaded → (user clicks) → installing → app quits
-//   available (mac / dev): "Open download page" links to the GitHub release.
-//
-// Themed confirm dialog (renderer-side) replaces the OS-native showMessageBox
-// that electron-updater used to throw up before downloading. Same flow as
-// before, just in our UI: click Download → modal opens → user confirms →
-// download starts. Cancel keeps state in 'available' so they can retry.
 function UpdateCheckButton({ currentVersion }) {
   const [state, setState] = useStateS('idle');
   const [result, setResult] = useStateS(null);
-  const [progress, setProgress] = useStateS(0);   // 0..100
+  const [progress, setProgress] = useStateS(0);   
   const [confirmOpen, setConfirmOpen] = useStateS(false);
   const openExternal = (url) => window.localml?.app?.openExternal?.(url);
 
-  // Wire up listeners for the long-running download flow once, and kick off a
-  // one-shot "is there an update?" check on mount so the user doesn't have to
-  // click "Check for updates" to see their current state. A `mounted` flag
-  // gates every setState that happens after an async hop so we don't update
-  // state on an unmounted component (common when the user closes Settings
-  // mid-check).
+
+
+
+
   useEffectS(() => {
     let mounted = true;
     const u = window.localml?.updates;
@@ -488,12 +465,10 @@ function UpdateCheckButton({ currentVersion }) {
     });
     const offError = u.onError?.((evt) => {
       if (!mounted) return;
-      // Download/install failures. If we know an update was available, drop
-      // the user back to the "available" state with the manual-download
-      // fallback UI (canAutoUpdate=false → shows "Open download page"),
-      // because the most common failure mode is a partially-published
-      // release where the platform installer 404s. That gives the user a
-      // working escape hatch instead of a tooltip dead-end.
+
+
+
+
       const errStr = evt?.error || 'Unknown error';
       setResult((r) => {
         const hadUpdate = !!(r && r.hasUpdate);
@@ -509,7 +484,6 @@ function UpdateCheckButton({ currentVersion }) {
       });
     });
 
-    // Auto-check on mount. Failures silently revert to idle.
     (async () => {
       if (!mounted) return;
       setState('checking');
@@ -534,12 +508,10 @@ function UpdateCheckButton({ currentVersion }) {
     setState('checking');
     setProgress(0);
     try {
-      // Manual click bypasses the 10-min cache so the user can force a
-      // fresh GitHub API call. Auto-check on mount uses the cached value.
+
       const r = await window.localml?.updates?.check?.({ force: true });
       if (!r || !r.ok) {
-        // Keep the error string in result for the tooltip, but render as idle
-        // so the user sees a clean "Check for updates" button, not "Retry".
+
         setResult(r || { error: 'unknown' });
         setState('idle');
         return;
@@ -552,9 +524,8 @@ function UpdateCheckButton({ currentVersion }) {
     }
   };
 
-  // Click "Download" → open the themed confirm modal. Confirming actually
-  // starts the download via the IPC; canceling just closes the modal and
-  // leaves state in 'available' so the user can retry.
+
+
   const requestDownload = () => setConfirmOpen(true);
 
   const confirmAndDownload = async () => {
@@ -566,7 +537,7 @@ function UpdateCheckButton({ currentVersion }) {
       if (!r) { setState('error'); setResult({ error: 'No response' }); return; }
       if (r.alreadyDownloaded) { setProgress(100); setState('downloaded'); return; }
       if (!r.ok) { setResult({ error: r.error || 'Download failed' }); setState('error'); return; }
-      // Success path: progress events drive the rest of the UI.
+
     } catch (e) {
       setResult({ error: String(e?.message || e) });
       setState('error');
@@ -575,18 +546,15 @@ function UpdateCheckButton({ currentVersion }) {
 
   const installAndRestart = async () => {
     setState('installing');
-    // Tell App to show the themed full-screen "Installing update" overlay.
-    // We pair this with NSIS oneClick:true + quitAndInstall(silent=true) so
-    // the user no longer sees the OS-native installer wizard mid-update -
-    // just our themed overlay, then the new app launches.
+
+
+
     window.dispatchEvent(new CustomEvent('localml:update-installing', {
       detail: { version: result?.latestVersion || '' },
     }));
 
-    // Failsafe: if quitAndInstall hangs (e.g. AV blocks the NSIS spawn) and
-    // we're still alive ~30 s later, the install isn't going to happen.
-    // Dismiss the overlay and report an error so the user isn't stuck on a
-    // forever "Installing update" screen.
+
+
     const timeoutId = setTimeout(() => {
       window.dispatchEvent(new CustomEvent('localml:update-install-failed'));
       setResult((r) => ({ ...(r || {}), error: 'Install timed out. Try downloading the installer manually from the website.' }));
@@ -600,8 +568,7 @@ function UpdateCheckButton({ currentVersion }) {
       setState('error');
       window.dispatchEvent(new CustomEvent('localml:update-install-failed'));
     }
-    // Note: we don't clearTimeout on success - when install succeeds, the
-    // app quits before the setTimeout fires, so no leak.
+
   };
 
   if (state === 'checking') {

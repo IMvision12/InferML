@@ -5,14 +5,7 @@ from adapters.base import Adapter
 import output_kinds as ok
 from io_utils import decode_image, resolve_device
 
-
-# Moondream ships a `modeling_*.py` that we have to load via trust_remote_code.
-# Limit that automatic trust to the original author. Other owners ("moondream"
-# is a generic-enough name that someone could upload a malicious fork) need
-# explicit `trust_remote_code: true` in model_overrides.json before we'll
-# execute their code on first inference.
 _TRUSTED_MOONDREAM_OWNERS = {"vikhyatk", "moondream"}
-
 
 class MoondreamAdapter(Adapter):
     @classmethod

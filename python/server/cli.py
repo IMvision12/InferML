@@ -11,15 +11,12 @@ import threading
 import webbrowser
 from pathlib import Path
 
-# Ensure both the `server` subpackage and the flat inference modules resolve,
-# regardless of how the entry point is invoked (console script or `-m`).
 _PY_DIR = Path(__file__).resolve().parents[1]
 if str(_PY_DIR) not in sys.path:
     sys.path.insert(0, str(_PY_DIR))
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 11500
-
 
 def _parse_args(argv):
     p = argparse.ArgumentParser(
@@ -36,17 +33,12 @@ def _parse_args(argv):
                    help="Auto-reload on source changes (development).")
     return p.parse_args(argv)
 
-
 def _force_utf8_console() -> None:
-    # Windows consoles default to a legacy code page (cp1252) that can't encode
-    # model names / URLs with non-ASCII glyphs, crashing on the first print.
-    # Reconfigure the standard streams to UTF-8 (best-effort; no-op if already).
     for stream in (sys.stdout, sys.stderr):
         try:
             stream.reconfigure(encoding="utf-8", errors="replace")
         except Exception:
             pass
-
 
 def main(argv=None) -> None:
     _force_utf8_console()
@@ -67,12 +59,10 @@ def main(argv=None) -> None:
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
 
     if args.reload:
-        # Factory import string so uvicorn's reloader can respawn the app.
         uvicorn.run("server.app:app", host=args.host, port=args.port, reload=True)
     else:
         from server.app import app
         uvicorn.run(app, host=args.host, port=args.port, log_level="info")
-
 
 if __name__ == "__main__":
     main()

@@ -12,7 +12,6 @@ from ._render import composite_masks, encode_png_data_url
 from io_utils import decode_image
 import output_kinds as ok
 
-
 REGION_PALETTE = [
     (255, 99, 71),  (30, 144, 255), (50, 205, 50),  (255, 215, 0),
     (186, 85, 211), (0, 206, 209),  (255, 140, 0),  (220, 20, 60),
@@ -20,12 +19,10 @@ REGION_PALETTE = [
     (124, 252, 0), (255, 69, 0),    (0, 250, 154),  (255, 20, 147),
 ]
 
-
 def info_model_type(state):
     """Pull the transformers model_type from a LoadedPipeline for error messages."""
     info = getattr(state, "info", None) or {}
     return info.get("model_type") or info.get("pipeline_tag") or "unknown"
-
 
 def _extract_masks(raw):
     """SAM pipelines return either a dict `{masks, scores}` or a list with
@@ -45,7 +42,6 @@ def _extract_masks(raw):
         if isinstance(head, dict):
             return _pair(head)
     return [], []
-
 
 class AutoMaskGenVariant(TaskVariant):
     """Grid sampling - default for SAM v1/2/2.1/3 when the user just gives an
@@ -67,10 +63,6 @@ class AutoMaskGenVariant(TaskVariant):
         max_masks = int(params.get("max_masks", 64))
 
         if state.pipe is None:
-            # MaskGenerationPipeline didn't support this model type, so we
-            # loaded the raw model/processor instead. Auto-grid needs the
-            # pipeline's grid sampler - direct a user to point-prompt mode,
-            # which works on model+processor directly.
             raise ValueError(
                 f"Auto-grid mask generation isn't available for this SAM variant "
                 f"(model_type={info_model_type(state)!r}) in the installed transformers version. "
@@ -80,7 +72,6 @@ class AutoMaskGenVariant(TaskVariant):
         raw = state.pipe(img, points_per_batch=ppb)
         masks_list, scores_list = _extract_masks(raw)
 
-        # Largest masks first - small ones draw on top so they stay visible.
         items = []
         for i, m in enumerate(masks_list):
             arr = np.asarray(m, dtype=bool)
@@ -120,7 +111,6 @@ class AutoMaskGenVariant(TaskVariant):
         result["annotated"] = encode_png_data_url(annotated)
         return result
 
-
 class PointPromptVariant(TaskVariant):
     """User-supplied point prompts - clicks on the image to indicate objects.
 
@@ -137,9 +127,7 @@ class PointPromptVariant(TaskVariant):
     name = "point-prompt"
 
     _INCOMPATIBLE_MODEL_TYPES = {
-        # Text-prompted SAM 3 - needs `input_text`, not point coords.
         "sam3_lite_text",
-        # Video / tracker variants - single-image point prompts don't apply.
         "sam3_tracker",
     }
 
@@ -167,10 +155,6 @@ class PointPromptVariant(TaskVariant):
         if model is None or processor is None:
             raise ValueError("SAM model/processor unavailable for point-prompt mode")
 
-        # MaskGenerationPipeline exposes only `image_processor` (a SamImageProcessor),
-        # not the wrapping SamProcessor that accepts input_points/input_labels.
-        # If we ended up with the bare image processor, load the AutoProcessor
-        # wrapper so the kwargs go through correctly.
         if not hasattr(processor, "image_processor"):
             try:
                 from transformers import AutoProcessor
@@ -181,13 +165,10 @@ class PointPromptVariant(TaskVariant):
                     f"(model_type={info_model_type(state)!r}): {e}"
                 )
 
-        # Points: [{x, y, label}] - x,y in [0,1], label 1=include, 0=exclude.
         raw_pts = inputs["points"]
         coords = [[int(p.get("x", 0.0) * W), int(p.get("y", 0.0) * H)] for p in raw_pts]
         labels = [int(p.get("label", 1)) for p in raw_pts]
 
-        # SamProcessor / Sam2Processor / Sam3Processor all accept this shape:
-        # input_points=[batch, num_points, 2], input_labels=[batch, num_points].
         try:
             proc_inputs = processor(
                 img,
@@ -206,10 +187,6 @@ class PointPromptVariant(TaskVariant):
         with torch.no_grad():
             outputs = model(**proc_inputs)
 
-        # post_process_masks rescales the low-resolution predictions back to
-        # the original image size and thresholds them into booleans. Method
-        # lives on image_processor for SAM v1/v2/v3; fall back to the wrapping
-        # processor if the newer variant relocated it.
         if not hasattr(outputs, "pred_masks"):
             raise ValueError(
                 f"SAM output missing `pred_masks` (model_type={info_model_type(state)!r}). "
@@ -220,7 +197,6 @@ class PointPromptVariant(TaskVariant):
         if post_process is None:
             raise ValueError("SAM processor exposes no post_process_masks - cannot rescale to original size")
 
-        # Some newer processors renamed `reshaped_input_sizes` → `reshaped_sizes`.
         reshaped = proc_inputs.get("reshaped_input_sizes")
         if reshaped is None:
             reshaped = proc_inputs.get("reshaped_sizes")
@@ -232,11 +208,10 @@ class PointPromptVariant(TaskVariant):
             proc_inputs["original_sizes"].cpu(),
             reshaped.cpu() if hasattr(reshaped, "cpu") else reshaped,
         )
-        iou_scores = outputs.iou_scores.cpu()  # (batch, num_points, 3)
+        iou_scores = outputs.iou_scores.cpu()
 
-        # Single-image batch. masks_by_batch[0] shape: (num_points, 3, H, W).
         per_point_masks = masks_by_batch[0]
-        per_point_scores = iou_scores[0]  # (num_points, 3)
+        per_point_scores = iou_scores[0]
 
         alpha = int(params.get("overlay_alpha", 140))
         overlay_arr = np.zeros((H, W, 4), dtype=np.uint8)
@@ -244,7 +219,6 @@ class PointPromptVariant(TaskVariant):
         total = max(1, W * H)
 
         for i in range(per_point_masks.shape[0]):
-            # SAM returns 3 masks ranked by IoU - pick the highest-scoring one.
             best_j = int(torch.argmax(per_point_scores[i]).item())
             mask_tensor = per_point_masks[i, best_j]
             arr = mask_tensor.numpy().astype(bool) if hasattr(mask_tensor, "numpy") else np.asarray(mask_tensor).astype(bool)
@@ -269,7 +243,6 @@ class PointPromptVariant(TaskVariant):
         result["annotated"] = encode_png_data_url(annotated)
         return result
 
-
 class MaskGenerationTask(TaskHandler):
     """SAM family - automatic grid-sampling mask generation by default, or
     point-prompted when the caller supplies `inputs.points`."""
@@ -281,8 +254,6 @@ class MaskGenerationTask(TaskHandler):
         "overlay_alpha": 140,
         "max_masks": 64,
     }
-    # Order matters: point-prompt is specific (requires points); fall back
-    # to the auto-grid variant when the user just provides an image.
     variants = [PointPromptVariant(), AutoMaskGenVariant()]
 
     def load_pipeline(self, info, device, extra_kwargs=None):
@@ -296,11 +267,6 @@ class MaskGenerationTask(TaskHandler):
         from io_utils import pipeline_device_arg, resolve_device
         kwargs = dict(extra_kwargs or {})
 
-        # SAM's mask post-processing internally promotes some tensors to
-        # float64, which the MPS (Apple Silicon) backend doesn't support.
-        # Result: "Cannot convert a MPS Tensor to float64 dtype" mid-inference.
-        # Forcing CPU on MPS sidesteps the issue. SAM-ViT-B is fast enough
-        # on M-series CPUs that this is acceptable.
         import torch
         on_mps = bool(getattr(torch.backends, "mps", None) and torch.backends.mps.is_available())
         device_arg = -1 if on_mps else pipeline_device_arg()
@@ -314,9 +280,6 @@ class MaskGenerationTask(TaskHandler):
                            or getattr(pipe, "image_processor", None)),
             )
         except Exception as pipe_err:
-            # Fallback: AutoModelForMaskGeneration + AutoProcessor. Leaves
-            # state.pipe=None; AutoMaskGenVariant will surface a helpful
-            # error if the user runs auto-grid mode on this path.
             import sys
             print(f"[mask-generation] pipeline() failed for {info.get('model_id')!r}: "
                   f"{pipe_err}. Loading model + processor directly.", file=sys.stderr)
@@ -330,7 +293,6 @@ class MaskGenerationTask(TaskHandler):
                 )
             model = AutoModelForMaskGeneration.from_pretrained(info["model_id"], **kwargs)
             processor = AutoProcessor.from_pretrained(info["model_id"], **kwargs)
-            # Same MPS workaround as the pipeline path.
             dev = torch.device("cpu") if on_mps else resolve_device()
             if dev is not False:
                 model = model.to(dev)

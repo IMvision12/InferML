@@ -14,18 +14,15 @@ import re
 from .base import TaskHandler, TaskVariant, LoadedPipeline
 import output_kinds as ok
 
-
 def _is_chat_model(info):
     arch = " ".join(info.get("architectures") or []).lower()
     tags = " ".join(info.get("tags") or []).lower()
     mid = (info.get("model_id") or "").lower()
     return any(k in tags for k in ("conversational", "chat")) or "instruct" in mid or "chat" in mid
 
-
 def _is_reasoning_model(info):
     mid = (info.get("model_id") or "").lower()
     return "r1" in mid or "qwq" in mid or "reasoning" in mid
-
 
 class ReasoningVariant(TaskVariant):
     """DeepSeek-R1, QwQ - strip <think>...</think> from the output."""
@@ -47,10 +44,8 @@ class ReasoningVariant(TaskVariant):
         kwargs.setdefault("max_new_tokens", 512)
         raw = state.pipe(prompt, **kwargs)
         out = (raw[0] if isinstance(raw, list) else raw).get("generated_text") or ""
-        # Strip <think>...</think>
         answer = re.sub(r"<think>.*?</think>\s*", "", out, flags=re.DOTALL).strip()
         return ok.text(answer or out)
-
 
 class ChatTemplateVariant(TaskVariant):
     """Instruct / chat models - use the tokenizer's chat template."""
@@ -73,11 +68,9 @@ class ChatTemplateVariant(TaskVariant):
         raw = state.pipe(prompt, **kwargs)
         r0 = raw[0] if isinstance(raw, list) else raw
         out = r0.get("generated_text") or ""
-        # Pipelines often echo the prompt - strip it.
         if out.startswith(prompt):
             out = out[len(prompt):].lstrip()
         return ok.text(out)
-
 
 class PlainGenVariant(TaskVariant):
     name = "plain"
@@ -89,30 +82,21 @@ class PlainGenVariant(TaskVariant):
         text = inputs["text"].strip()
         kwargs = {k: params[k] for k in ("max_new_tokens", "temperature", "top_p", "top_k", "do_sample") if k in params}
         kwargs.setdefault("max_new_tokens", 256)
-        # Translation-specific language kwargs - only passed when provided so
-        # Marian (which doesn't accept them) isn't broken.
         for k in ("src_lang", "tgt_lang"):
             if params.get(k):
                 kwargs[k] = params[k]
         raw = state.pipe(text, **kwargs)
         r0 = raw[0] if isinstance(raw, list) else raw
         out = r0.get("generated_text") or r0.get("translation_text") or r0.get("summary_text") or ""
-        # text-generation pipelines echo the prompt in `generated_text`; strip it
-        # so the user sees just the continuation. translation_text / summary_text
-        # from the seq2seq pipelines don't have this issue, and stripping a
-        # non-matching prefix is a no-op.
         if isinstance(out, str) and out.startswith(text):
             out = out[len(text):].lstrip()
         return ok.text(out)
-
 
 class TextGenerationTask(TaskHandler):
     name = "text-generation"
     output_kind = "text"
     default_params = {"max_new_tokens": 256}
-    # Order matters - reasoning > chat > plain.
     variants = [ReasoningVariant(), ChatTemplateVariant(), PlainGenVariant()]
-
 
 class Seq2SeqVariant(TaskVariant):
     """Encoder-decoder generation for Marian / NLLB / M2M-100 / FSMT / Prophetnet.
@@ -130,9 +114,6 @@ class Seq2SeqVariant(TaskVariant):
         model = state.model
         kwargs = {k: params[k] for k in ("max_new_tokens", "temperature", "top_p", "top_k", "do_sample") if k in params}
         kwargs.setdefault("max_new_tokens", 256)
-        # Translation models occasionally accept src/tgt language codes via
-        # tokenizer kwargs (NLLB, M2M-100). We pass them through only when set
-        # so models that don't expect them aren't broken.
         tok_kwargs = {}
         for k in ("src_lang", "tgt_lang"):
             if params.get(k):
@@ -154,7 +135,6 @@ class Seq2SeqVariant(TaskVariant):
         out = tokenizer.decode(out_ids[0], skip_special_tokens=True)
         return ok.text(out)
 
-
 class _Seq2SeqLMTask(TaskHandler):
     """Shared loader for the three encoder-decoder pipeline tasks.
     Concrete subclasses just set `name`."""
@@ -175,10 +155,8 @@ class _Seq2SeqLMTask(TaskHandler):
         model.eval()
         return LoadedPipeline(info=info, device=device, pipe=None, model=model, processor=tokenizer)
 
-
 class TranslationTask(_Seq2SeqLMTask):
     name = "translation"
-
 
 class SummarizationTask(_Seq2SeqLMTask):
     name = "summarization"

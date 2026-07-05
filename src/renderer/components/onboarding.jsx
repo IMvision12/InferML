@@ -4,8 +4,7 @@ function Onboarding({ open, onDone, pyStatus = {}, pySetup, refreshPyStatus, run
   const [hw, setHw] = useStateOB(null);
   const [showLog, setShowLog] = useStateOB(false);
   const [copied, setCopied] = useStateOB(false);
-  // Accelerator: 'cpu' | 'gpu' | null. Null means "not chosen yet" - we won't
-  // auto-kick setup until the user picks (or accepts the suggestion).
+
   const [accelerator, setAccelerator] = useStateOB(null);
   const logRef = useRefOB(null);
   const triggeredRef = useRefOB(false);
@@ -23,8 +22,7 @@ function Onboarding({ open, onDone, pyStatus = {}, pySetup, refreshPyStatus, run
     return () => { mounted = false; };
   }, [open]);
 
-  // Setup is gated on the user picking an accelerator. We pre-select the
-  // suggested one once status arrives, but require a click to confirm.
+
   const suggestedAccel = pyStatus?.suggestedAccelerator || (
     hw?.gpu?.vendor?.toLowerCase().includes('nvidia') ? 'gpu' : 'cpu'
   );
@@ -36,10 +34,8 @@ function Onboarding({ open, onDone, pyStatus = {}, pySetup, refreshPyStatus, run
     runSetup && runSetup({ accelerator: accel });
   };
 
-  // macOS uses the same default PyPI torch wheel for both CPU and Apple
-  // Silicon GPU (MPS support is built into the wheel). The CPU/GPU picker
-  // is meaningless there - auto-start with 'gpu' so MPS gets used at runtime
-  // and the user lands directly in the install progress.
+
+
   useEffectOB(() => {
     if (!open) return;
     if (pySetup?.running || pySetup?.done || triggeredRef.current) return;
@@ -63,12 +59,10 @@ function Onboarding({ open, onDone, pyStatus = {}, pySetup, refreshPyStatus, run
   };
   useEffectOB(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); }, []);
 
-  // Auto-dismiss when the runtime is already ready and the user did NOT
-  // kick off an install in this session. Catches the race where Onboarding
-  // opens because the initial pyStatus hadn't loaded yet, but the runtime
-  // turns out to be fully installed on disk. We exclude the "user just
-  // finished an install in this session" case so the success card stays
-  // visible and the user can click Continue intentionally.
+
+
+
+
   useEffectOB(() => {
     if (!open) return;
     if (!pyStatus?.ready) return;
@@ -220,8 +214,7 @@ function Onboarding({ open, onDone, pyStatus = {}, pySetup, refreshPyStatus, run
           )}
         </div>
 
-        {/* Accelerator switch - only after install, only on non-Mac (Mac uses
-            the same default PyPI wheel for both CPU and MPS). */}
+        {}
         {!running && done && pyStatus?.platform !== 'darwin' && pyStatus?.installedAccelerator && (
           <div className="py-card idle">
             <div className="py-card-head">
@@ -247,8 +240,7 @@ function Onboarding({ open, onDone, pyStatus = {}, pySetup, refreshPyStatus, run
           </div>
         )}
 
-        {/* HF Token lives in Settings → HF Token. Onboarding only handles
-            system inspection + Python runtime selection. */}
+        {}
 
         <div className="ob-buttons">
           <button className="ob-btn primary" disabled={!canContinue} onClick={onDone}>
@@ -268,7 +260,7 @@ function HFTokenCard() {
   const [input, setInput]   = useStateOB('');
   const [show, setShow]     = useStateOB(false);
   const [busy, setBusy]     = useStateOB(false);
-  const [status, setStatus] = useStateOB(null); // { ok, error, user }
+  const [status, setStatus] = useStateOB(null); 
 
   const refresh = async () => {
     try { setMasked(await window.localml?.hf.getToken()); } catch {}

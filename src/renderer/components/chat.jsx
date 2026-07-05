@@ -1,7 +1,5 @@
 const { useState: useStateCH, useEffect: useEffectCH, useRef: useRefCH } = React;
 
-// Derive a readable title from the first user message. Clean whitespace,
-// truncate at word boundary when possible, and add ellipsis for cut-off text.
 function titleFromFirstMessage(text, atts) {
   const cleaned = (text || '').trim().replace(/\s+/g, ' ');
   if (cleaned) {
@@ -17,9 +15,6 @@ function titleFromFirstMessage(text, atts) {
   return 'New chat';
 }
 
-// Janus mode picker. Janus is a unified VLM. one model, two directions:
-// "Understand" expects an image and answers a question about it.
-// "Generate" takes a text prompt and synthesizes a new image.
 const JANUS_MODES = [
   { value: 'understand', label: 'Understand', desc: 'Image in. text out' },
   { value: 'generate',   label: 'Generate',   desc: 'Text in. image out' },
@@ -58,9 +53,8 @@ function ChatWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
   const [atts, setAtts] = useStateCH([]);
   const [error, setError] = useStateCH(null);
   const [sending, setSending] = useStateCH(false);
-  // Mid-shutdown after the user clicks Stop. Lets the button render
-  // "Stopping…" instead of either "Send" or "Stop" while the sidecar
-  // graceful-stop is in flight.
+
+
   const [stopping, setStopping] = useStateCH(false);
   const stoppedByUserRef = useRefCH(false);
   const stop = async () => {
@@ -82,7 +76,7 @@ function ChatWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
       if (!sessionId) return;
       const c = await window.localml.chats.get(sessionId);
       if (cancelled || !c) return;
-      // Heal any message left in `streaming` with no text (crash/reload mid-run).
+
       const healed = (c.messages || []).map(m =>
         (m.streaming && !m.text)
           ? { ...m, streaming: false, text: '[interrupted]', error: true }
@@ -110,9 +104,8 @@ function ChatWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
     const text = input.trim();
     const isGenerate = isJanus && janusMode === 'generate';
     if ((!text && !atts.length) || sending) return;
-    // Generate mode needs a text prompt, no image.
-    // Understand mode (and other VLMs) need an image on the first turn;
-    // subsequent turns inherit the prior image (see imageAtt lookup below).
+
+
     if (isGenerate && !text) {
       setError('Generate mode needs a text prompt describing the image to create.');
       return;
@@ -161,11 +154,9 @@ function ChatWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
     try { await window.localml.chats.save(nextChat); } catch {}
     onSaved && onSaved(nextChat);
 
-    // Run inference through the Python sidecar.
-    // Understand mode: VLMs require an image per inference call. Carry forward
-    // the most recent image from earlier turns so multi-turn conversations
-    // work without forcing the user to re-attach on every message.
-    // Generate mode: skip the image lookup entirely (text-to-image).
+
+
+
     let imageAtt = isGenerate ? null : (atts || []).find(a => a.kind === 'image');
     if (!imageAtt && isVLM && !isGenerate) {
       for (let i = chat.messages.length - 1; i >= 0; i--) {
@@ -231,10 +222,9 @@ function ChatWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
   };
 
   const visibleMessages = chat.messages.filter(m => m.role !== 'system');
-  // VLMs need an image per inference IN UNDERSTAND MODE. Allow the first turn
-  // only when an image is attached. Subsequent turns can be text-only because
-  // we carry the prior image forward in send(). Janus generate-mode takes only
-  // text and skips this check entirely.
+
+
+
   const hasPriorImage = chat.messages.some(m => (m.attachments || []).some(a => a.kind === 'image'));
   const isGenerateMode = isJanus && janusMode === 'generate';
   const vlmNeedsImage = !isGenerateMode && isVLM && atts.length === 0 && !hasPriorImage;
@@ -365,30 +355,18 @@ function Message({ m }) {
   );
 }
 
-// Markdown renderer for assistant messages - gives ChatGPT/Claude/Qwen-style
-// formatting (headings, lists, bold/italic, inline + fenced code, tables,
-// blockquotes, links). Uses `marked` for parsing and `DOMPurify` to scrub
-// any HTML the model might emit (LLMs occasionally produce raw <script>
-// tags etc; we never trust their output).
-//
-// Streaming-safe: re-rendering on every token is cheap because marked is
-// fast and the AST is throwaway. Incomplete code fences mid-stream render
-// as plain code blocks until the closing ``` arrives - same behaviour
-// every other LLM client has.
 const _markedConfigured = (() => {
   if (typeof window === 'undefined' || !window.marked) return false;
   try {
     window.marked.setOptions({
-      gfm: true,    // GitHub-flavoured: tables, strikethrough, task lists, fenced code
-      breaks: true, // single newline → <br> (matches how chat models actually format)
+      gfm: true,    
+      breaks: true, 
     });
   } catch { return false; }
 
-  // Force every emitted <a> through shell.openExternal. Without this, an
-  // LLM-supplied bare `[link](https://attacker)` clicked by the user would
-  // navigate the renderer away from index.html - and the preload script
-  // stays attached, so the attacker page could call window.localml.* IPC.
-  // Belt-and-braces: the main process also blocks `will-navigate`.
+
+
+
   if (window.DOMPurify && typeof window.DOMPurify.addHook === 'function') {
     try {
       window.DOMPurify.addHook('afterSanitizeAttributes', (node) => {
@@ -404,8 +382,7 @@ const _markedConfigured = (() => {
 })();
 
 function MarkdownText({ text, className }) {
-  // Re-parse only when text changes. Re-opening a chat with several long
-  // markdown messages would otherwise re-parse them all on every render.
+
   const html = React.useMemo(() => {
     if (!_markedConfigured || !window.DOMPurify) return null;
     try {
@@ -414,8 +391,7 @@ function MarkdownText({ text, className }) {
     } catch { return null; }
   }, [text]);
 
-  // Fallback to plain pre-formatted text if either lib failed to load - we
-  // never want a missing dep to take the chat view down.
+
   if (html === null) {
     return <div className={className} style={{whiteSpace:'pre-wrap'}}>{text}</div>;
   }

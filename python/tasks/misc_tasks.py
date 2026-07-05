@@ -5,20 +5,8 @@ from __future__ import annotations
 from .base import TaskHandler, TaskVariant
 import output_kinds as ok
 
-
-# --- text-to-speech ---
-
-# CMU-Arctic x-vector zip - fetched once via hf_hub_download (~17 MB, cached
-# under HF_HOME). Kept process-global so subsequent SpeechT5 runs are free.
-#
-# Why not the `datasets` package? `Matthijs/cmu-arctic-xvectors` is a
-# script-loaded dataset, and `datasets >= 4.0` dropped support for loading
-# scripts entirely (raises `RuntimeError: Dataset scripts are no longer
-# supported`). Pulling the zip directly side-steps that - same data, same
-# 7931 x-vectors, no `datasets` dependency.
 _XVECT_ZIP = None
 _XVECT_NAMES = None
-
 
 def _load_speaker_embedding(speaker_index: int):
     """Return a 512-d CMU-Arctic x-vector (shape [1, 512], float32) for
@@ -43,12 +31,10 @@ def _load_speaker_embedding(speaker_index: int):
     arr = np.load(io.BytesIO(_XVECT_ZIP.read(_XVECT_NAMES[idx])))
     return torch.tensor(arr).unsqueeze(0)
 
-
 def _is_speecht5(info: dict) -> bool:
     mid = (info.get("model_id") or "").lower()
     mt  = (info.get("model_type") or "").lower()
     return "speecht5" in mid or "speecht5" in mt
-
 
 class SpeechT5Variant(TaskVariant):
     """SpeechT5 needs two things the generic TTS pipeline doesn't reliably set
@@ -79,13 +65,11 @@ class SpeechT5Variant(TaskVariant):
         if model is None or processor is None:
             raise RuntimeError("SpeechT5 pipeline didn't expose a model/processor")
 
-        # Resolve the device once - used for vocoder, embeddings, and inputs.
         try:
             dev = next(model.parameters()).device
         except (StopIteration, AttributeError):
             dev = None
 
-        # Lazy-load + cache the vocoder. SpeechT5HifiGan is ~50 MB; one fetch.
         vocoder = getattr(state, "_speecht5_vocoder", None)
         if vocoder is None:
             from transformers import SpeechT5HifiGan
@@ -112,7 +96,6 @@ class SpeechT5Variant(TaskVariant):
         audio = speech.detach().cpu().numpy()
         return ok.audio(audio, 16000)
 
-
 class TextToSpeechVariant(TaskVariant):
     """VITS, Bark, MMS-TTS, FastSpeech2, MusicGen - anything that doesn't need
     an external speaker conditioning tensor."""
@@ -132,10 +115,8 @@ class TextToSpeechVariant(TaskVariant):
             audio = audio.squeeze()
         return ok.audio(audio, sr)
 
-
 class TextToSpeechTask(TaskHandler):
     name = "text-to-speech"
     output_kind = "audio"
     default_params = {}
-    # SpeechT5 first - its `can_handle` is more specific (model-id check).
     variants = [SpeechT5Variant(), TextToSpeechVariant()]

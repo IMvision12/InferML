@@ -13,37 +13,25 @@ import threading
 import time
 from collections import deque
 
-from engine import ENGINE  # the process-wide singleton
+from engine import ENGINE
 
-# One inference at a time. Guards run() + model load + download.
 INFERENCE_LOCK = asyncio.Lock()
 
-# Cooperative stop flag for the streaming/OpenAI generation path. A non-stream
-# run() can't be interrupted mid-`generate()` in-process, but streaming checks
-# this between tokens.
 _STOP_EVENT = threading.Event()
-
 
 def request_stop() -> None:
     _STOP_EVENT.set()
 
-
 def clear_stop() -> None:
     _STOP_EVENT.clear()
-
 
 def stop_requested() -> bool:
     return _STOP_EVENT.is_set()
 
-
 def engine():
     return ENGINE
 
-
-# ---------- in-memory log ring (replaces services/logs.js) ----------
-
 _LOGS: deque = deque(maxlen=2000)
-
 
 def log(source: str, message: str, level: str = "info", event: str = "", meta: dict | None = None) -> dict:
     entry = {
@@ -57,11 +45,9 @@ def log(source: str, message: str, level: str = "info", event: str = "", meta: d
     _LOGS.append(entry)
     return entry
 
-
 def logs(limit: int = 500) -> list[dict]:
     items = list(_LOGS)
     return items[-limit:]
-
 
 async def run_blocking(fn, *args, **kwargs):
     """Run a blocking engine call in the default threadpool."""

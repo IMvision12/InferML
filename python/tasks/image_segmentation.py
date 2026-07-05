@@ -6,9 +6,6 @@ from ._render import composite_masks, encode_png_data_url
 from io_utils import decode_image
 import output_kinds as ok
 
-
-# Canonical palettes for well-known datasets - keeps colors stable across runs
-# and matches what users see in the literature.
 CITYSCAPES_PALETTE = {
     "road":          (128, 64, 128),  "sidewalk":    (244, 35, 232),
     "building":      (70, 70, 70),    "wall":        (102, 102, 156),
@@ -22,13 +19,6 @@ CITYSCAPES_PALETTE = {
     "bicycle":       (119, 11, 32),
 }
 
-# Bright, high-saturation cycle that composites well on photos at our default
-# alpha. Class assignments cycle in the order labels are first seen, so for
-# PASCAL VOC (where labels return in class-id order) this consistently maps:
-# background → tomato, cat → dodger blue, sofa → medium orchid, etc.
-# Empirically the cycle produces more legible overlays on natural images
-# than the canonical dataset palettes (which are tuned for non-translucent
-# rendering and often clash with photo-realistic skin / fur / sky tones).
 FALLBACK_PALETTE = [
     (255, 99, 71),  (30, 144, 255), (50, 205, 50),  (255, 215, 0),
     (186, 85, 211), (0, 206, 209),  (255, 140, 0),  (220, 20, 60),
@@ -36,14 +26,12 @@ FALLBACK_PALETTE = [
     (124, 252, 0), (255, 69, 0),    (0, 250, 154),  (255, 20, 147),
 ]
 
-
 def _color_for(label: str, chosen: dict) -> tuple:
     if label in chosen:
         return chosen[label]
     canon = CITYSCAPES_PALETTE.get(label.lower().strip())
     chosen[label] = canon if canon is not None else FALLBACK_PALETTE[len(chosen) % len(FALLBACK_PALETTE)]
     return chosen[label]
-
 
 def _build_overlay(img, results, params):
     """Shared overlay composition - covers semantic, instance, panoptic equally
@@ -55,7 +43,7 @@ def _build_overlay(img, results, params):
     min_pct = float(params.get("legend_min_pct", 0.3))
     overlay_arr = np.zeros((H, W, 4), dtype=np.uint8)
     chosen_colors: dict = {}
-    per_label: dict = {}  # label → total positive pixels + score samples
+    per_label: dict = {}
     total = max(1, W * H)
 
     for i, r in enumerate(results):
@@ -90,7 +78,6 @@ def _build_overlay(img, results, params):
         })
     return Image.fromarray(overlay_arr, mode="RGBA"), legend
 
-
 class SegmentationVariant(TaskVariant):
     """Works for semantic (Segformer/MaskFormer), instance (Mask2Former) and
     panoptic (DETR-panoptic) - the HF pipeline returns a uniform `list[{label,
@@ -104,12 +91,10 @@ class SegmentationVariant(TaskVariant):
         img = decode_image(inputs["dataUrl"])
         results = state.pipe(img) or []
         overlay, legend = _build_overlay(img, results, params)
-        # Server-side composite so the UI just displays one finished image.
         annotated = composite_masks(img, overlay)
         result = ok.masks(overlay, legend)
         result["annotated"] = encode_png_data_url(annotated)
         return result
-
 
 class OneFormerVariant(TaskVariant):
     """OneFormer ships one set of weights for all three segmentation tasks
@@ -125,9 +110,6 @@ class OneFormerVariant(TaskVariant):
     """
     name = "oneformer"
 
-    # Class-level cache so the same OneFormerProcessor isn't re-loaded for
-    # every inference call (the pipeline-loaded image_processor doesn't have
-    # the tokenizer half needed for `task_inputs`).
     _processor_cache: dict = {}
 
     def can_handle(self, info, inputs):
@@ -216,10 +198,8 @@ class OneFormerVariant(TaskVariant):
         result["annotated"] = encode_png_data_url(annotated)
         return result
 
-
 class ImageSegmentationTask(TaskHandler):
     name = "image-segmentation"
     output_kind = "masks"
     default_params = {"overlay_alpha": 140, "legend_min_pct": 0.3}
-    # OneFormer first (matches by model_id), generic pipeline path is the fallback.
     variants = [OneFormerVariant(), SegmentationVariant()]

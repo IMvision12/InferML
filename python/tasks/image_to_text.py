@@ -10,7 +10,6 @@ from .base import TaskHandler, TaskVariant, LoadedPipeline
 from io_utils import decode_image
 import output_kinds as ok
 
-
 class UnconditionedCaptionVariant(TaskVariant):
     """No text input → call the underlying model directly.
 
@@ -51,7 +50,6 @@ class UnconditionedCaptionVariant(TaskVariant):
         caption = tok.decode(out_ids[0], skip_special_tokens=True)
         return ok.text(caption)
 
-
 class VQAVariant(TaskVariant):
     """User provided a text prompt → standard image-text-to-text pipeline."""
     name = "vqa"
@@ -62,8 +60,6 @@ class VQAVariant(TaskVariant):
     def run(self, state, inputs, params):
         img = decode_image(inputs["dataUrl"])
         text = (inputs.get("text") or "").strip()
-        # Only pass sampling kwargs when do_sample is on - otherwise HF warns
-        # about "temperature has no effect when do_sample=False" in the logs.
         kwargs = {"max_new_tokens": int(params.get("max_new_tokens", 256)),
                   "do_sample": bool(params.get("do_sample", False))}
         if kwargs["do_sample"]:
@@ -72,7 +68,6 @@ class VQAVariant(TaskVariant):
         try:
             result = state.pipe(images=img, text=text, **kwargs)
         except TypeError:
-            # Newer conversational pipelines expect a `messages` list.
             messages = [{"role": "user", "content": [
                 {"type": "image", "image": img},
                 {"type": "text", "text": text},
@@ -86,15 +81,12 @@ class VQAVariant(TaskVariant):
             gen = assistant.get("content", "") if assistant else ""
         return ok.text(gen or (r0.get("text") if isinstance(r0, dict) else "") or "")
 
-
 class ImageToTextTask(TaskHandler):
     name = "image-to-text"
     output_kind = "text"
     default_params = {"max_new_tokens": 60}
-    # newer transformers renamed this task; pipeline registry uses the new name.
     _runtime_task = "image-text-to-text"
     variants = [UnconditionedCaptionVariant(), VQAVariant()]
-
 
 class ImageTextToTextTask(ImageToTextTask):
     """The same machinery - this is just the renamed task so routing works

@@ -37,26 +37,17 @@ from models import (
     adapter_for_library,
 )
 
-
 _OVERRIDES_CACHE = None
 _PLUGIN_CACHE = None
-
 
 PLUGIN_DIR = Path(__file__).parent / "plugins"
 OVERRIDES_PATH = Path(__file__).parent / "model_overrides.json"
 
-
 def _log(msg: str) -> None:
     print(f"[routing] {msg}", file=sys.stderr, flush=True)
 
-
-# Surface any per-family load failures at startup so a broken folder is
-# obvious in the logs without crashing the sidecar.
 for _family, _err in MODEL_LOAD_ERRORS.items():
     _log(f"models/{_family} failed to load: {type(_err).__name__}: {_err}")
-
-
-# ---------- model_overrides.json ----------
 
 def load_overrides() -> dict:
     global _OVERRIDES_CACHE
@@ -70,19 +61,14 @@ def load_overrides() -> dict:
         _OVERRIDES_CACHE = {}
     return _OVERRIDES_CACHE
 
-
 def override_for(model_id: str) -> dict:
     return load_overrides().get(model_id, {}) or {}
-
-
-# ---------- plugins ----------
 
 def _load_plugin_module(path: Path):
     spec = importlib.util.spec_from_file_location(f"localml_plugin_{path.stem}", str(path))
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
-
 
 def plugin_adapters() -> list[type]:
     """Scan python/plugins/*.py and return a list of Adapter subclasses."""
@@ -107,9 +93,6 @@ def plugin_adapters() -> list[type]:
             _log(f"plugin load failed for {f.name}: {e}")
     _PLUGIN_CACHE = out
     return out
-
-
-# ---------- model metadata ----------
 
 def inspect_model(model_id: str) -> dict:
     """Gather enough metadata to route the model without downloading weights.
@@ -152,13 +135,9 @@ def inspect_model(model_id: str) -> dict:
 
     return info
 
-
-# ---------- router ----------
-
 def pick_adapter(info: dict) -> Adapter:
     ovr = override_for(info["model_id"])
 
-    # Tier 1: explicit adapter name in override
     named = ovr.get("adapter")
     if named:
         cls = NAMED_ADAPTERS.get(named)
@@ -168,7 +147,6 @@ def pick_adapter(info: dict) -> Adapter:
             _log(f"routing {info['model_id']} → {cls.__name__} (override)")
             return inst
 
-    # Tier 2: plugin adapters (can_handle match)
     for cls in plugin_adapters():
         try:
             if cls.can_handle(info):
@@ -179,7 +157,6 @@ def pick_adapter(info: dict) -> Adapter:
         except Exception as e:
             _log(f"plugin {cls.__name__}.can_handle raised: {e}")
 
-    # Tier 3: models/<family>/ registry. O(1) lookup keyed on model_type tag.
     mt = (info.get("model_type") or "").lower()
     if mt and mt in MODEL_REGISTRY:
         entry = MODEL_REGISTRY[mt]
@@ -192,7 +169,6 @@ def pick_adapter(info: dict) -> Adapter:
         except Exception as e:
             _log(f"models/{entry['family']} adapter init raised: {e}")
 
-    # Tier 4a: library-keyed family folder (e.g. models/flux/, models/sdxl/)
     library = (info.get("library") or "").lower()
     if library == "diffusers":
         match = adapter_for_library(library, info["model_id"])
@@ -206,22 +182,18 @@ def pick_adapter(info: dict) -> Adapter:
             except Exception as e:
                 _log(f"models/{family} adapter init raised: {e}")
 
-    # Tier 4b: generic diffusers fallback
     if DiffusersAdapter.can_handle(info):
         inst = DiffusersAdapter()
         inst.override = ovr
         _log(f"routing {info['model_id']} → DiffusersAdapter")
         return inst
 
-    # Tier 5: standard pipeline
     if StandardPipelineAdapter.can_handle(info):
         inst = StandardPipelineAdapter()
         inst.override = ovr
         _log(f"routing {info['model_id']} → StandardPipelineAdapter")
         return inst
 
-    # No fallback. Tell the user what to do instead of silently returning
-    # something the UI cannot render.
     raise ValueError(
         f"No adapter matched {info['model_id']!r}. "
         f"model_type={info.get('model_type')!r} pipeline_tag={info.get('pipeline_tag')!r}. "

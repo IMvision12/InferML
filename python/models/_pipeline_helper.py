@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from adapters.base import Adapter
 
-
 class PipelineAdapter(Adapter):
     """Delegates to the shared task handler in `python/tasks/<task>.py`.
 
@@ -31,8 +30,6 @@ class PipelineAdapter(Adapter):
     def load(self, info, device):
         from tasks import get_task
         self.info = info
-        # Prefer pipeline_tag if it points at a task we know. Falls back to
-        # the family's primary task if the tag is missing or unknown.
         task_name = info.get("pipeline_tag") or ""
         if get_task(task_name) is None:
             task_name = self.TASK_NAME
@@ -46,7 +43,6 @@ class PipelineAdapter(Adapter):
 
     def run(self, inputs, params):
         return self._task.handle(self._state, inputs, params)
-
 
 def make_pipeline_adapter(task_name: str, *, name: str | None = None) -> type:
     """Factory: returns a PipelineAdapter subclass bound to `task_name`."""

@@ -5,13 +5,9 @@ from .base import Adapter
 import output_kinds as ok
 from io_utils import decode_image, resolve_device, torch_dtype_for_device
 
-
 class DiffusersAdapter(Adapter):
     @classmethod
     def can_handle(cls, info):
-        # text-to-video is excluded on purpose - run() returns `result.images[0]`
-        # which doesn't exist for video pipelines. Add a video output branch
-        # before re-enabling.
         if info.get("library") == "diffusers":
             return info.get("pipeline_tag") != "text-to-video"
         tag = info.get("pipeline_tag")
@@ -55,7 +51,6 @@ class DiffusersAdapter(Adapter):
             kwargs["image"] = decode_image(inputs["dataUrl"])
         elif self.task == "inpainting" and inputs.get("dataUrl"):
             kwargs["image"] = decode_image(inputs["dataUrl"])
-            # Mask would be provided via `inputs.maskDataUrl` once the UI supports it.
 
         result = self.pipe(prompt, **kwargs)
         image = result.images[0]

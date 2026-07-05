@@ -1,11 +1,9 @@
 """PixArt-α + PixArt-Σ. Diffusion transformers from PixArt-alpha."""
 from models._diffusion_helper import DiffusionFamilyAdapter
 
-
 class PixArtAdapter(DiffusionFamilyAdapter):
-    DEFAULT_STEPS = 20        # PixArt converges fast
+    DEFAULT_STEPS = 20
     DEFAULT_GUIDANCE = 4.5
-
 
 LIBRARY = "diffusers"
 TASK = "text-to-image"

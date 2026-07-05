@@ -21,7 +21,6 @@ from .base import Adapter  # noqa: F401
 from .standard_pipeline import StandardPipelineAdapter
 from .diffusers_pipeline import DiffusersAdapter
 
-
 def _named_adapters() -> dict[str, type]:
     """Build the name→class map used by `model_overrides.json "adapter"` pins.
 
@@ -41,9 +40,6 @@ def _named_adapters() -> dict[str, type]:
             cls = entry.get("adapter")
             if cls is None:
                 continue
-            # Allow lookup by both folder name (e.g. "deepseek_vl") and class
-            # short-name (e.g. "deepseekvl") for back-compat with overrides
-            # that already used class-based names.
             out[fam_name] = cls
             short = cls.__name__.replace("Adapter", "").lower()
             out.setdefault(short, cls)
@@ -51,15 +47,7 @@ def _named_adapters() -> dict[str, type]:
         pass
     return out
 
-
-# NAMED_ADAPTERS is constructed on first read via PEP 562 module __getattr__.
-# Doing it eagerly at import time captured a partial `models.FAMILIES` whenever
-# something imported `models` before `adapters` (the family-folder discovery
-# chain re-entered this module mid-load and read FAMILIES at zero entries).
-# Lazy access waits until any caller actually reads `adapters.NAMED_ADAPTERS`,
-# by which time `models/__init__.py` has finished its _discover() pass.
 _NAMED_ADAPTERS_CACHE: "dict[str, type] | None" = None
-
 
 def __getattr__(name: str):
     global _NAMED_ADAPTERS_CACHE
@@ -68,7 +56,6 @@ def __getattr__(name: str):
             _NAMED_ADAPTERS_CACHE = _named_adapters()
         return _NAMED_ADAPTERS_CACHE
     raise AttributeError(f"module 'adapters' has no attribute {name!r}")
-
 
 __all__ = [
     "Adapter",

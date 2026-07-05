@@ -7,6 +7,5 @@ from models._pipeline_helper import make_pipeline_adapter
 
 MODEL_TYPES = ["donut-swin", "donut_swin"]
 TASK = "image-to-text"
-# Donut also ships DocVQA fine-tunes; runtime adapter dispatches by pipeline_tag.
 EXTRA_TASKS = ["document-question-answering"]
 ADAPTER = make_pipeline_adapter("image-to-text", name="DonutAdapter")

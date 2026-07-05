@@ -10,7 +10,6 @@ from .base import TaskHandler, TaskVariant
 from io_utils import decode_image
 import output_kinds as ok
 
-
 def _to_array(depth):
     """Normalize a depth result (PIL grayscale, torch.Tensor, np.ndarray) to a
     2-D float32 numpy array."""
@@ -22,14 +21,12 @@ def _to_array(depth):
         arr = arr.squeeze(0) if arr.shape[0] == 1 else arr.mean(axis=0)
     return arr
 
-
 def _resize_to(arr, w, h):
     import numpy as np
     from PIL import Image
     if arr.shape == (h, w):
         return arr
     return np.array(Image.fromarray(arr).resize((w, h), Image.BILINEAR), dtype=np.float32)
-
 
 def _colorize(arr01):
     """Map a 2-D array in [0,1] to RGB via matplotlib's turbo if available,
@@ -40,7 +37,6 @@ def _colorize(arr01):
         rgba = cm.get_cmap("turbo")(arr01)
         return (rgba[..., :3] * 255).astype(np.uint8)
     except Exception:
-        # Plasma-ish 5-stop linear ramp - close enough for a fallback.
         stops = np.array([
             [13, 8, 135], [126, 3, 168], [203, 70, 121], [248, 149, 64], [240, 249, 33],
         ], dtype=np.float32)
@@ -49,7 +45,6 @@ def _colorize(arr01):
         f = (idx - i0)[..., None]
         rgb = stops[i0] * (1 - f) + stops[i0 + 1] * f
         return rgb.astype(np.uint8)
-
 
 class DepthEstimationVariant(TaskVariant):
     name = "standard"
@@ -63,10 +58,6 @@ class DepthEstimationVariant(TaskVariant):
         img = decode_image(inputs["dataUrl"])
         W, H = img.size
         result = state.pipe(img)
-        # Pipeline shape: {"depth": PIL grayscale, "predicted_depth": Tensor}.
-        # `depth` is the post-processed visualization (already 0-255 grayscale);
-        # `predicted_depth` is raw model output. Prefer `depth` - its scale is
-        # consistent across models.
         depth = None
         if isinstance(result, dict):
             depth = result.get("depth") or result.get("predicted_depth")
@@ -76,14 +67,11 @@ class DepthEstimationVariant(TaskVariant):
         arr = _resize_to(_to_array(depth), W, H)
         lo, hi = float(arr.min()), float(arr.max())
         norm = np.zeros_like(arr) if hi - lo < 1e-6 else (arr - lo) / (hi - lo)
-        # Many depth models predict *inverse* depth (closer = larger value).
-        # Turbo reads better when near = warm, far = cool - flip when asked.
         if bool(params.get("invert", False)):
             norm = 1.0 - norm
         rgb = _colorize(norm)
         colored = Image.fromarray(rgb, "RGB")
 
-        # Optional alpha-blend back onto the source so geometry stays visible.
         blend = float(params.get("blend", 0.0))
         if blend > 0:
             base = img.convert("RGBA")
@@ -92,7 +80,6 @@ class DepthEstimationVariant(TaskVariant):
             base.alpha_composite(top)
             colored = base.convert("RGB")
         return ok.image(colored)
-
 
 class DepthEstimationTask(TaskHandler):
     name = "depth-estimation"

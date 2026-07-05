@@ -1,18 +1,5 @@
 const { useState: useStateTW, useEffect: useEffectTW, useRef: useRefTW } = React;
 
-// TASK_META fields:
-//   input    - primary composer slot: 'image' | 'audio' | 'text'
-//   textSlot - optional secondary text field rendered alongside image. Present on
-//              zero-shot / VLM tasks that need candidate labels or a prompt.
-//              { label, placeholder, required, help }
-//   guide    - empty-state description of what to provide.
-//              { summary, rows: [{k, v, req}], example? }
-//   params   - tunable parameters surfaced in the composer's Advanced panel.
-//              Each entry: { key, label, type, default, min?, max?, step?,
-//              help?, options? (select), visibleWhen?(modelId) }.
-//              type: 'number' | 'range' | 'text' | 'boolean' | 'select'
-
-// Shared generation params - used by every text-generation-style task and VLM.
 const GEN_PARAMS = [
   { key: 'max_new_tokens', label: 'Max new tokens', type: 'number', default: 256, min: 16,  max: 4096, step: 16, help: 'Upper bound on generated tokens. Truncates long outputs. Raise if answers are cut off.' },
   { key: 'do_sample',      label: 'Sample (random)', type: 'boolean', default: false,                             help: 'Off → greedy (deterministic). On → uses temperature / top_p / top_k.' },
@@ -21,15 +8,14 @@ const GEN_PARAMS = [
   { key: 'top_k',          label: 'Top-k',          type: 'number', default: 50,   min: 0,  max: 200,  step: 1,    help: '0 disables top-k. Only applies when Sample is on.' },
 ];
 const TASK_META = {
-  // ─── Single-image vision ────────────────────────────────────────────
+
   'image-segmentation':  { nm: 'Segment',     input: 'image', output: 'masks',  icon: 'eye',     accent: 'oklch(70% 0.14 155)',
     guide: {
       summary: 'Pixel-level segmentation. Every pixel gets a class label from the model\'s vocabulary.',
       rows: [{ k: 'Image', v: 'JPG/PNG/WebP. Anything the model can see', req: true }],
     },
     params: [
-      // OneFormer-only mode toggle. Surfaced as a dedicated segmented control
-      // above the composer (see OneFormerModeBar) instead of inside Parameters.
+
       { key: 'oneformer_mode', label: 'OneFormer mode', type: 'select', default: 'semantic',
         visibleWhen: (mid) => /oneformer/i.test(mid || ''),
         help: 'OneFormer trains all three heads on one checkpoint. Pick semantic for one mask per class, instance for one mask per object, panoptic for both stuff and things.',
@@ -94,7 +80,6 @@ const TASK_META = {
       { key: 'top_p',          label: 'Top-p',          type: 'range',   default: 0.95, min: 0, max: 1,    step: 0.01, help: 'Only applies when Sample is on.' },
     ]},
 
-  // ─── Depth ──────────────────────────────────────────────────────────
   'depth-estimation':    { nm: 'Estimate depth', input: 'image', output: 'image', icon: 'eye', accent: 'oklch(70% 0.14 200)',
     guide: {
       summary: 'Monocular depth estimation (DPT, MiDaS, ZoeDepth, Depth Anything v1/v2, Depth Pro). Returns a colorized depth map at the input resolution.',
@@ -105,7 +90,6 @@ const TASK_META = {
       { key: 'blend',  label: 'Blend with original',   type: 'range',   default: 0,    min: 0, max: 1, step: 0.05, help: 'Alpha-blend the colored depth back onto the source image so geometry stays visible.' },
     ]},
 
-  // ─── OCR / document understanding ───────────────────────────────────
   'document-question-answering': { nm: 'Read document', input: 'image', output: 'text', icon: 'chat', accent: 'oklch(70% 0.12 65)',
     textSlot: {
       label: 'Question (optional)',
@@ -125,7 +109,6 @@ const TASK_META = {
       { key: 'top_k', label: 'Top-K answers', type: 'number', default: 1, min: 1, max: 10, step: 1, help: 'Return multiple candidate answers ranked by score (extractive models only).' },
     ]},
 
-  // ─── Vision + text labels (text required) ──────────────────────────
   'zero-shot-image-classification': { nm: 'Classify (zero-shot)', input: 'image', output: 'labels', icon: 'eye', accent: 'oklch(70% 0.14 155)',
     textSlot: {
       label: 'Candidate labels',
@@ -162,7 +145,6 @@ const TASK_META = {
       { key: 'nms_iou',   label: 'NMS IoU',         type: 'range', default: 0.45, min: 0, max: 1, step: 0.05, help: 'IoU for non-max suppression. Higher keeps more overlapping boxes.' },
     ]},
 
-  // ─── VLM (image + optional prompt) ─────────────────────────────────
   'image-text-to-text':  { nm: 'Ask a VLM', input: 'image', output: 'text', icon: 'chat', accent: 'oklch(70% 0.12 230)',
     textSlot: {
       label: 'Prompt (optional)',
@@ -182,10 +164,9 @@ const TASK_META = {
       { key: 'do_sample',      label: 'Sample (random)', type: 'boolean', default: false,                             help: 'Off → greedy. On → sampled generation.' },
       { key: 'temperature',    label: 'Temperature',    type: 'range',   default: 0.7, min: 0,  max: 2,    step: 0.05, help: 'Only applies when Sample is on.' },
       { key: 'top_p',          label: 'Top-p',          type: 'range',   default: 0.95, min: 0, max: 1,    step: 0.01, help: 'Only applies when Sample is on.' },
-      // Florence-2 task tokens. Surfaced as a dedicated pill bar above the
-      // composer (see FlorenceTaskBar) instead of inside the Parameters panel,
-      // so the choice is visible without expanding Parameters. Kept in this
-      // schema so default seeding + paramsToSend wiring still picks it up.
+
+
+
       { key: 'florence_task', label: 'Florence-2 task', type: 'select', default: '<CAPTION>',
         visibleWhen: (mid) => /florence-?2/i.test(mid || ''),
         help: 'Florence-2 routes behavior via task tokens. Some tokens (CAPTION_TO_PHRASE_GROUNDING, REFERRING_EXPRESSION_SEGMENTATION, OPEN_VOCABULARY_DETECTION) also use the Prompt field as the phrase/expression to ground.',
@@ -205,15 +186,13 @@ const TASK_META = {
       },
     ]},
 
-  // ─── Audio ──────────────────────────────────────────────────────────
   'automatic-speech-recognition': { nm: 'Transcribe', input: 'audio', output: 'text',  icon: 'waveform', accent: 'oklch(70% 0.13 65)',
     guide: {
       summary: 'Speech-to-text (Whisper, Wav2Vec2, Parakeet, …).',
       rows: [{ k: 'Audio', v: 'WAV / MP3 / FLAC / OGG / M4A', req: true }],
     },
     params: [
-      // Whisper-only mode toggle. Surfaced as a dedicated segmented control
-      // above the composer (see WhisperModeBar) instead of inside Parameters.
+
       { key: 'whisper_mode', label: 'Whisper mode', type: 'select', default: 'transcribe',
         visibleWhen: (mid) => /whisper/i.test(mid || ''),
         help: 'Translate forces output to English regardless of source language. Whisper-only.',
@@ -240,7 +219,6 @@ const TASK_META = {
         help: 'SpeechT5 only. The CMU-Arctic dataset has 7931 x-vectors (0-7930). 7306 is the HF default (clear female voice). Try other indices for different speakers.' },
     ]},
 
-  // ─── Diffusers ──────────────────────────────────────────────────────
   'text-to-image': { nm: 'Generate image', input: 'text', output: 'image', icon: 'sparkle', accent: 'oklch(70% 0.15 320)',
     guide: {
       summary: 'Text-to-image diffusion (SD, SDXL, FLUX, …).',
@@ -274,7 +252,6 @@ const TASK_META = {
       { key: 'negative_prompt',     label: 'Negative prompt',  type: 'text',   default: '',                                help: 'Things to steer AWAY from.' },
     ]},
 
-  // ─── Text only ──────────────────────────────────────────────────────
   'text-generation':     { nm: 'Generate',  input: 'text', output: 'text',   icon: 'chat', accent: 'oklch(70% 0.12 230)',
     guide: {
       summary: 'Causal LM (Llama, Qwen, Mistral, Phi, Gemma, …).',
@@ -314,9 +291,6 @@ function resolveTaskMeta(task) {
   return TASK_META[task] || { nm: task || 'Run', input: 'text', output: 'text', icon: 'cube', accent: 'oklch(70% 0.10 250)' };
 }
 
-// Smart session titles: "<verb> · <input name>" for file inputs, "<verb>: <text>"
-// for text inputs. Verbs come from TASK_META so the sidebar reads like
-// "Detect · invoice", "Transcribe · meeting.mp3", "Generate: a red bird on a…".
 function titleForTask(meta, input) {
   const verb = meta?.nm || 'Run';
   if (!input) return verb;
@@ -326,7 +300,7 @@ function titleForTask(meta, input) {
     const snippet = text.length > 48 ? text.slice(0, 48).trimEnd() + '…' : text;
     return `${verb}: ${snippet}`;
   }
-  // Image/audio with an optional text prompt - prefer the prompt if provided.
+
   const promptText = (input.text || '').trim().replace(/\s+/g, ' ');
   if (promptText) {
     const s = promptText.length > 40 ? promptText.slice(0, 40).trimEnd() + '…' : promptText;
@@ -338,10 +312,6 @@ function titleForTask(meta, input) {
   return `${verb} · ${short}`;
 }
 
-// Florence-2 task list. Tokens flagged `usesPrompt` consume the Prompt field
-// as the phrase/expression to ground, segment, or detect. Tokens flagged
-// `output` describe what kind of result the task produces (drives the empty
-// state hint copy). Tasks without `usesPrompt` only need an image.
 const FLORENCE_TASKS = [
   { value: '<CAPTION>',                            label: 'Caption (short)',         output: 'text',  desc: 'A one-line caption of the image.' },
   { value: '<DETAILED_CAPTION>',                   label: 'Caption (detailed)',      output: 'text',  desc: 'A few-sentence description of the image.' },
@@ -356,7 +326,6 @@ const FLORENCE_TASKS = [
   { value: '<OPEN_VOCABULARY_DETECTION>',          label: 'Open-vocab detection',    output: 'boxes', usesPrompt: true, desc: 'Detect arbitrary classes you list in the prompt.' },
 ];
 
-// Compact dropdown picker for Florence-2 tasks. Click to open a popover menu.
 function FlorenceTaskBar({ value, onChange }) {
   const [open, setOpen] = useStateTW(false);
   const wrapRef = useRefTW(null);
@@ -418,9 +387,6 @@ function FlorenceTaskBar({ value, onChange }) {
   );
 }
 
-// Whisper transcribe / translate mode toggle. Two-button segmented control
-// above the audio composer for Whisper checkpoints. Translate forces output
-// to English regardless of source language.
 const WHISPER_MODES = [
   { value: 'transcribe', label: 'Transcribe',           desc: 'Preserve source language' },
   { value: 'translate',  label: 'Translate to English', desc: 'Force English output' },
@@ -453,9 +419,6 @@ function WhisperModeBar({ value, onChange }) {
   );
 }
 
-// OneFormer semantic / instance / panoptic mode toggle. Three-button segmented
-// control above the segmentation composer, only for OneFormer checkpoints.
-// Each mode triggers a different post-processor in the Python adapter.
 const ONEFORMER_MODES = [
   { value: 'semantic', label: 'Semantic', desc: 'One mask per class' },
   { value: 'instance', label: 'Instance', desc: 'One mask per object' },
@@ -489,8 +452,6 @@ function OneFormerModeBar({ value, onChange }) {
   );
 }
 
-// Compact empty-state card shown before any run for Florence-2 (replaces the
-// full InputGuide which is too tall and forces scrolling).
 function FlorenceEmpty({ florenceTask, modelId, accent }) {
   const cur = FLORENCE_TASKS.find(t => t.value === florenceTask) || FLORENCE_TASKS[0];
   return (
@@ -513,15 +474,13 @@ function FlorenceEmpty({ florenceTask, modelId, accent }) {
 function TaskWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
   const [session, setSession] = useStateTW(null);
   const [textInput, setTextInput] = useStateTW('');
-  const [fileInput, setFileInput] = useStateTW(null); // { kind, data, dataUrl, name, mediaType }
+  const [fileInput, setFileInput] = useStateTW(null); 
   const [running, setRunning] = useStateTW(false);
-  // True from the moment the user clicks Stop until the sidecar shutdown
-  // resolves. Lets the button render "Stopping…" instead of either "Run" or
-  // "Stop" so a slow shutdown doesn't look like a stalled UI.
+
+
   const [stopping, setStopping] = useStateTW(false);
-  // Set just before calling tasks.stop() so the run()'s catch path (which
-  // sees the resulting "sidecar exited" rejection) knows to mark the run as
-  // 'cancelled' rather than 'error', and surface a clean message to the user.
+
+
   const stoppedByUserRef = useRefTW(false);
   const stop = async () => {
     if (!running || stopping) return;
@@ -531,14 +490,12 @@ function TaskWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
   };
   const [error, setError] = useStateTW(null);
   const [paramValues, setParamValues] = useStateTW({});
-  // SAM point prompts - one per user click on the image. {x, y, label} with
-  // x/y normalized to [0,1] and label: 1 = include, 0 = exclude.
+
   const [samPoints, setSamPoints] = useStateTW([]);
-  const [samMode, setSamMode] = useStateTW(1); // 1 = include, 0 = exclude
+  const [samMode, setSamMode] = useStateTW(1); 
   const scrollRef = useRefTW(null);
   const paramsTaskRef = useRefTW('');
 
-  // Prefer persisted session.task (post-load) over modelMeta.task (initial prop)
   const resolvedTask = session?.task || modelMeta?.task || '';
   const meta = resolveTaskMeta(resolvedTask);
   const isFlorence = /florence-?2/i.test(modelId || '');
@@ -550,9 +507,8 @@ function TaskWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
   const isOneFormer = /oneformer/i.test(modelId || '') && resolvedTask === 'image-segmentation';
   const oneformerMode = paramValues.oneformer_mode || 'semantic';
 
-  // Seed paramValues with task-appropriate defaults. Re-seed when the effective
-  // task changes (happens once on session load), keeping user edits intact in
-  // steady state.
+
+
   useEffectTW(() => {
     if (!resolvedTask || resolvedTask === paramsTaskRef.current) return;
     paramsTaskRef.current = resolvedTask;
@@ -569,14 +525,12 @@ function TaskWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
       const s = await window.localml.chats.get(sessionId);
       if (cancelled || !s) return;
 
-      // Self-heal missing task by pulling from the installed metadata file.
       let task = s.task;
       if (!task && s.modelId) {
         const installed = await window.localml?.hf.installed().catch(() => null);
         task = installed?.[s.modelId]?.task || modelMeta?.task || '';
       }
 
-      // Strip any legacy dummy outputs - real inference isn't wired yet.
       const runs = (s.runs || []).map(r => r.status === 'stub' || (r.status === 'running' && !r.output)
         ? { ...r, status: 'pending', output: null }
         : r);
@@ -598,7 +552,7 @@ function TaskWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
     const att = await window.localml.dialog.openImage();
     if (att) {
       setFileInput(att);
-      setSamPoints([]); // fresh image → drop stale clicks
+      setSamPoints([]); 
     }
   };
   const pickAudio = async () => {
@@ -608,9 +562,8 @@ function TaskWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
 
   const textSlot = meta.textSlot;
   const textSlotFilled = textInput.trim().length > 0;
-  // Florence-2 grounding/segmentation/open-vocab tasks need a prompt even
-  // though textSlot.required is false (image-text-to-text is "optional" in
-  // general but the chosen task token here demands one).
+
+
   const promptRequired = !!textSlot && (textSlot.required || (isFlorence && florenceUsesPrompt));
   const textSlotSatisfied = !textSlot || !promptRequired || textSlotFilled;
   const canRun =
@@ -627,19 +580,16 @@ function TaskWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
     setRunning(true);
     setError(null);
 
-    // For image+textSlot tasks, merge the secondary text into the fileInput
-    // payload. The Python side reads `inputs.dataUrl` and `inputs.text`
-    // independently - a single object carries both.
-    // For SAM with user-clicked points, attach `points` so the Python side
-    // picks the point-prompt variant instead of auto-grid.
+
+
+
     let input;
     if (meta.input === 'text') {
       input = { kind: 'text', text: textInput.trim() };
     } else if (fileInput) {
       input = { ...fileInput };
-      // Skip text for Florence tasks that ignore the prompt - otherwise
-      // stale textarea content from a previous task would leak into the
-      // task-token payload (e.g. "<CAPTION>old phrase" confuses the model).
+
+
       if (textSlot && (!isFlorence || florenceUsesPrompt)) {
         input.text = textInput.trim();
       }
@@ -676,8 +626,7 @@ function TaskWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
     setTextInput('');
     setFileInput(null);
 
-    // Drop empty strings and keys for params not visible for this model
-    // (e.g. florence_task on a non-Florence model) so Python sees defaults.
+
     const paramsToSend = {};
     for (const p of (meta.params || [])) {
       if (p.visibleWhen && !p.visibleWhen(modelId || '')) continue;
@@ -770,9 +719,8 @@ function TaskWorkspace({ sessionId, modelId, modelMeta, onSaved }) {
             onReplace={() => { setFileInput(null); setSamPoints([]); }}
           />
         ) : meta.input === 'image' && textSlot ? (
-          // Fused box: image attachment chip + prompt textarea share one container.
-          // For Florence-2, hide the prompt textarea when the selected task
-          // doesn't consume a prompt (caption / OD / OCR / region tasks).
+
+
           (() => {
             const showPrompt = !isFlorence || florenceUsesPrompt;
             const promptRequired = isFlorence ? florenceUsesPrompt : textSlot.required;
@@ -1493,7 +1441,7 @@ function layoutAnnotations(items, W, H) {
 
   for (const c of order) {
     // Walk downward in labelH-sized steps until the candidate doesn't collide
-    // with anything already placed, or we fall off the image.
+
     const maxShift = Math.max(0, H - c.labelY - c.labelH);
     const steps = Math.ceil(maxShift / (c.labelH + 1)) + 1;
     for (let i = 0; i < steps; i++) {
@@ -1501,14 +1449,13 @@ function layoutAnnotations(items, W, H) {
       if (!collision) break;
       c.labelY = collision.labelY + collision.labelH + 1;
       if (c.labelY + c.labelH > H) {
-        c.labelY = H - c.labelH;  // last resort: pin to bottom edge
+        c.labelY = H - c.labelH;  
         break;
       }
     }
     placed.push(c);
   }
 
-  // Return in the original item order for stable rendering / React keys.
   return raw.sort((a, b) => a.idx - b.idx);
 }
 

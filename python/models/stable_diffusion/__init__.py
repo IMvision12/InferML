@@ -5,11 +5,9 @@ models/sdxl_refiner/. SDXL is its own family in models/sdxl/.
 """
 from models._diffusion_helper import DiffusionFamilyAdapter
 
-
 class StableDiffusionAdapter(DiffusionFamilyAdapter):
-    DEFAULT_STEPS = 30        # SD 1.5 / 2.x sweet spot
-    DEFAULT_GUIDANCE = 7.5    # canonical CFG
-
+    DEFAULT_STEPS = 30
+    DEFAULT_GUIDANCE = 7.5
 
 LIBRARY = "diffusers"
 TASK = "text-to-image"

@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 import uuid
 
-
 def make_tool_call(name: str, arguments) -> dict:
     """Build an OpenAI `tool_calls[]` entry. `arguments` is emitted as a JSON
     *string* per the spec (dicts are serialized; strings pass through)."""
@@ -22,7 +21,6 @@ def make_tool_call(name: str, arguments) -> dict:
         "function": {"name": name, "arguments": args_str},
     }
 
-
 def safe_loads(s: str):
     """Parse JSON, tolerating single quotes and trailing junk after the object."""
     s = (s or "").strip()
@@ -32,11 +30,9 @@ def safe_loads(s: str):
         return json.loads(s)
     except Exception:
         pass
-    # Try the first balanced object/array only.
     for obj in iter_json_values(s):
         return obj
     return None
-
 
 def iter_json_values(text: str):
     """Yield successive top-level JSON objects/arrays found in `text` by scanning
@@ -56,7 +52,6 @@ def iter_json_values(text: str):
                 i = end + 1
                 continue
         i += 1
-
 
 def _match_bracket(text: str, start: int):
     open_ch = text[start]

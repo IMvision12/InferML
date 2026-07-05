@@ -16,7 +16,6 @@ from .base import TaskHandler, TaskVariant
 from io_utils import decode_image
 import output_kinds as ok
 
-
 class DocumentQAVariant(TaskVariant):
     name = "standard"
 
@@ -27,9 +26,6 @@ class DocumentQAVariant(TaskVariant):
         img = decode_image(inputs["dataUrl"])
         question = (inputs.get("text") or "").strip()
         if not question:
-            # Sensible default for users who just want OCR-style extraction.
-            # LayoutLM/Donut both handle this question reasonably; users can
-            # override with anything more specific.
             question = "What is the text content of this document?"
 
         kwargs = {}
@@ -39,12 +35,10 @@ class DocumentQAVariant(TaskVariant):
 
         result = state.pipe(image=img, question=question, **kwargs)
 
-        # Pipeline returns either a single dict or a list - normalize.
         if isinstance(result, dict):
             return ok.text(result.get("answer") or "")
         if isinstance(result, list) and result:
             if top_k > 1:
-                # Show all candidates with their scores so users can compare.
                 lines = []
                 for r in result:
                     a = (r.get("answer") or "").strip()
@@ -56,7 +50,6 @@ class DocumentQAVariant(TaskVariant):
             top = result[0]
             return ok.text(top.get("answer") or "")
         return ok.text("")
-
 
 class DocumentQATask(TaskHandler):
     name = "document-question-answering"

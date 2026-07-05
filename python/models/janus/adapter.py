@@ -16,7 +16,6 @@ from adapters.base import Adapter
 import output_kinds as ok
 from io_utils import decode_image, resolve_device, torch_dtype_for_device
 
-
 class JanusAdapter(Adapter):
     @classmethod
     def can_handle(cls, info):
@@ -97,9 +96,6 @@ class JanusAdapter(Adapter):
             "role": "user",
             "content": [{"type": "text", "text": text}],
         }]
-        # Janus's processor has a generation_mode flag that switches the
-        # template to the image-generation prefix. The same flag must be
-        # passed to generate() so it routes through the image branch.
         proc_inputs = self.processor.apply_chat_template(
             messages,
             tokenize=True,
@@ -122,7 +118,6 @@ class JanusAdapter(Adapter):
                 num_return_sequences=1,
                 guidance_scale=guidance,
             )
-        # decode_image_tokens returns (B, H, W, 3) tensor in roughly [-1, 1].
         decoded = self.model.decode_image_tokens(image_tokens)
         arr = decoded.float().detach().cpu()
         arr = ((arr.clamp(-1, 1) + 1) / 2 * 255).to(torch.uint8).numpy()

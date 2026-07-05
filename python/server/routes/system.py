@@ -24,37 +24,25 @@ from server import hw_service
 
 router = APIRouter(prefix="/api")
 
-
 @router.get("/hw")
 async def hw():
     return await deps.run_blocking(hw_service.sample_hw)
 
-
 @router.get("/logs")
 async def logs():
     return deps.logs()
-
 
 @router.get("/app")
 async def app_info():
     from server.appdata import data_dir
     return {"name": "localml", "version": __version__, "dataDir": str(data_dir())}
 
-
-# ---------- storage sizes + cache clearing ----------
-
-# key -> (result, expiresAt). Walking site-packages / the HF cache is slow, so
-# cache the result briefly (the Settings panel re-reads on open + on install
-# changes).
 _SIZE_CACHE: dict[str, tuple] = {}
 _SIZE_TTL = 20.0
 
-
 def _hf_cache_root() -> Path:
-    # Canonical, cross-platform HF hub cache dir.
     from server.hf_service import hf_cache_dir
     return hf_cache_dir()
-
 
 def _dir_size(paths) -> tuple[int, int]:
     total = 0
@@ -72,7 +60,6 @@ def _dir_size(paths) -> tuple[int, int]:
                     pass
     return total, files
 
-
 def _compute_size(key: str) -> dict:
     cached = _SIZE_CACHE.get(key)
     if cached and cached[1] > time.time():
@@ -82,7 +69,6 @@ def _compute_size(key: str) -> dict:
         b, f = _dir_size([root])
         out = {"ok": True, "bytes": b, "files": f, "paths": [str(root)]}
     elif key in ("pyRuntime", "py"):
-        # The active Python environment's footprint (torch/transformers live here).
         b, f = _dir_size([sys.prefix])
         out = {"ok": True, "bytes": b, "files": f, "paths": [sys.prefix]}
     else:
@@ -90,21 +76,16 @@ def _compute_size(key: str) -> dict:
     _SIZE_CACHE[key] = (out, time.time() + _SIZE_TTL)
     return out
 
-
 @router.get("/storage/size")
 async def storage_size(key: str = Query(...)):
     return await deps.run_blocking(_compute_size, key)
-
 
 @router.post("/storage/clear")
 async def storage_clear(payload: dict = Body(default={})):
     key = (payload or {}).get("key")
     if key not in ("hfCache", "hf"):
-        # The Python runtime is installed via pip and must not be deleted from
-        # here (it would break the running server).
         return {"ok": False, "error": "Only the models cache can be cleared here."}
     return await deps.run_blocking(_clear_hf_cache)
-
 
 def _clear_hf_cache() -> dict:
     from server.hf_service import _cache_roots
@@ -122,7 +103,6 @@ def _clear_hf_cache() -> dict:
                     freed += b
                 except Exception as e:
                     errors.append(str(e))
-    # Reset the installs registry so the Hub reflects the now-empty cache.
     try:
         write_json(installs_file(), {})
     except Exception:
@@ -130,7 +110,6 @@ def _clear_hf_cache() -> dict:
     _SIZE_CACHE.pop("hfCache", None)
     HUB.publish("hf:installsChanged")
     return {"ok": True, "removed": removed, "bytes": freed, "errors": errors}
-
 
 @router.get("/events")
 async def events(request: Request):
@@ -140,7 +119,6 @@ async def events(request: Request):
 
     async def stream():
         try:
-            # Prime the connection so EventSource fires `open` immediately.
             yield ": connected\n\n"
             while True:
                 if await request.is_disconnected():
@@ -149,13 +127,12 @@ async def events(request: Request):
                     payload = await asyncio.wait_for(q.get(), timeout=15.0)
                     yield EventHub.format_sse(payload)
                 except asyncio.TimeoutError:
-                    yield ": keepalive\n\n"  # comment frame, keeps the socket warm
+                    yield ": keepalive\n\n"
         finally:
             HUB.unsubscribe(q)
 
     return StreamingResponse(stream(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
-
 
 async def hw_poller(interval: float = 2.5):
     """Single global poller: sample hardware and broadcast `hw:update` to every
