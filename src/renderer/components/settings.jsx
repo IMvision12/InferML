@@ -198,7 +198,7 @@ function GeneralSection({ version, hw, pyStatus, refreshPyStatus }) {
           control={
             <button
               className="mc-btn ghost"
-              onClick={(e) => { e.stopPropagation(); openExternal('https://github.com/IMvision12/localml-app/issues'); }}
+              onClick={(e) => { e.stopPropagation(); openExternal('https://github.com/IMvision12/InferML/issues'); }}
             >
               <Icon name="arrow_right" size={11}/> Open in browser
             </button>

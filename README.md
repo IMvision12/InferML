@@ -30,8 +30,8 @@ your hardware - pick **CPU** or **GPU** and it fetches the matching build.
 Prefer to do it by hand?
 
 ```bash
-pipx install localml-app                 # server only; the app installs torch on first run
-pipx install "localml-app[inference]"    # or grab the whole stack up front (generic torch wheel)
+pipx install inferml                 # server only; the app installs torch on first run
+pipx install "inferml[inference]"    # or grab the whole stack up front (generic torch wheel)
 ```
 
 ## Run

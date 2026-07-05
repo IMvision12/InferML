@@ -51,7 +51,7 @@ fi
 # --- install LocalML (server only; the app installs the CPU/GPU stack on first
 #     launch, so we don't pull torch here) --------------------------------------
 info "Installing the LocalML server..."
-"$PY" -m pipx install localml-app \
+"$PY" -m pipx install inferml \
   || die "Install failed. See the output above."
 
 printf '\n'

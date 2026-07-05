@@ -1,0 +1,94 @@
+name: release
+
+# Auto-publish to PyPI when pyproject.toml's `version` changes on main.
+#
+# Flow: bump `version` in pyproject.toml -> push to main. If that version has
+# not been released yet (no matching `v<version>` git tag), this builds the
+# package and trusted-publishes it to PyPI, then tags `v<version>` and creates
+# a GitHub Release. Pushing again without a version bump does nothing (the tag
+# already exists), so it never double-publishes.
+#
+# Publishing uses PyPI Trusted Publishing (OIDC) - no API token. The registered
+# publisher must match: repo IMvision12/InferML, workflow release.yml, env Any.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - pyproject.toml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  # Read the version and decide whether it's already been released.
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.decide.outputs.version }}
+      is_new: ${{ steps.decide.outputs.is_new }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # need existing tags to compare against
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - id: decide
+        run: |
+          version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git rev-parse "v$version" >/dev/null 2>&1; then
+            echo "is_new=false" >> "$GITHUB_OUTPUT"
+            echo "v$version is already tagged - nothing to release."
+          else
+            echo "is_new=true" >> "$GITHUB_OUTPUT"
+            echo "New version v$version - releasing."
+          fi
+
+  # Build + publish + tag, only when the version is new.
+  release:
+    needs: check
+    if: needs.check.outputs.is_new == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # OIDC trusted publishing to PyPI (no token)
+      contents: write   # create the git tag + GitHub Release
+    steps:
+      - uses: actions/checkout@v4
+
+      # Build the React UI and bundle it into python/server/webui (gitignored,
+      # generated) so the compiled frontend ships inside the wheel.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+      # Build sdist + wheel. MANIFEST.in pulls python/server/webui into the
+      # sdist; setuptools package-data includes it in the wheel built from it.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --upgrade build
+      - run: python -m build
+
+      # Trusted publish. skip-existing keeps a re-run from failing if the
+      # version somehow already landed on PyPI.
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+
+      # Tag the released commit and open a GitHub Release with auto notes.
+      - name: Tag and create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ needs.check.outputs.version }}" \
+            --title "v${{ needs.check.outputs.version }}" \
+            --generate-notes

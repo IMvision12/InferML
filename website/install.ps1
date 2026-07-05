@@ -53,7 +53,7 @@ Install Python first - https://www.python.org/downloads/
   # --- install LocalML (server only; the app installs the CPU/GPU stack on first
   #     launch, so we don't pull torch here) --------------------------------------
   Info 'Installing the LocalML server...'
-  & $py -m pipx install localml-app 2>&1
+  & $py -m pipx install inferml 2>&1
   if ($LASTEXITCODE -ne 0) { Write-Host 'Install failed. See the output above.' -ForegroundColor Red; return }
 
   Write-Host ''
