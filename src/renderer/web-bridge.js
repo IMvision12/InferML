@@ -21,6 +21,23 @@
   const jpatch = (path, body) => jsend(path, 'PATCH', body);
   const jdelete = (path) => jsend(path, 'DELETE');
 
+  // After a self-update the server exits, upgrades, and relaunches with
+  // --no-browser. Wait for it to go down, then poll /api/health until the new
+  // instance answers, and reload this tab onto the new version.
+  function _reloadWhenServerReturns() {
+    const start = Date.now();
+    let sawDown = false;
+    const tick = async () => {
+      if (Date.now() - start > 180000) return;
+      let up = false;
+      try { up = (await fetch(BASE + '/api/health', { cache: 'no-store' })).ok; } catch {}
+      if (up && sawDown) { location.reload(); return; }
+      if (!up) sawDown = true;
+      setTimeout(tick, 1500);
+    };
+    setTimeout(tick, 3000);
+  }
+
 
 
   const _subs = { 'hw:update': new Set(), 'chats:updated': new Set(), 'hf:installsChanged': new Set() };
@@ -228,9 +245,14 @@
     },
 
     updates: {
-      check: () => Promise.resolve({ ok: true, hasUpdate: false }),
-      download: () => Promise.resolve({ ok: false }),
-      install: () => Promise.resolve({ ok: false }),
+      check: (opts) => jget('/api/updates/check' + (opts && opts.force ? '?force=true' : '')),
+      // pipx has no separate download step; advance the UI straight to "ready to install".
+      download: () => Promise.resolve({ ok: true, alreadyDownloaded: true }),
+      install: async () => {
+        const r = await jpost('/api/updates/install');
+        if (r && r.ok) _reloadWhenServerReturns();
+        return r || { ok: false };
+      },
       onProgress: () => () => {},
       onDownloaded: () => () => {},
       onError: () => () => {},

@@ -40,12 +40,13 @@ def create_app() -> FastAPI:
     def health():
         return {"ok": True, "name": "inferml", "version": __version__}
 
-    from server.routes import inference, hf, store, system
+    from server.routes import inference, hf, store, system, updates
     from server.openai_api import routes as openai_routes
     app.include_router(inference.router)
     app.include_router(hf.router)
     app.include_router(store.router)
     app.include_router(system.router)
+    app.include_router(updates.router)
     app.include_router(openai_routes.router)
 
     webui = webui_dir()
