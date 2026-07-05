@@ -1,7 +1,7 @@
 {
   "name": "localml-webui",
   "productName": "LocalML",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "LocalML web UI build tooling. The app itself ships as the Python package `inferml` (see pyproject.toml).",
   "private": true,
   "author": {
