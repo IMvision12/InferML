@@ -1,7 +1,7 @@
 {
   "name": "inferml-webui",
   "productName": "InferML",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "InferML web UI build tooling. The app itself ships as the Python package `inferml` (see pyproject.toml).",
   "private": true,
   "author": {
