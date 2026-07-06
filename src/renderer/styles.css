@@ -1093,6 +1093,14 @@ input, textarea { font: inherit; color: inherit; background: none; border: none;
 .side-tab:hover { background: var(--bg-3); color: var(--fg-0); }
 .side-tab.active { background: var(--bg-3); color: var(--fg-0); border-color: var(--line-2); }
 .side-flex { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; padding-top: 4px; }
+.side-footer { margin-top: auto; flex-shrink: 0; padding: 8px 10px 12px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.side-stats { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 2px 2px 4px; font-family: var(--mono); font-size: 10px; color: var(--fg-2); }
+.side-update-btn, .side-setup-btn { width: 100%; height: 32px; padding: 0 12px; display: flex; align-items: center; gap: 8px; border-radius: 5px; font-size: 12px; font-weight: 500; }
+.side-update-btn { border: 1px solid color-mix(in oklab, var(--ok) 40%, var(--line)); background: color-mix(in oklab, var(--ok) 12%, var(--bg-2)); color: var(--ok); }
+.side-update-btn:hover { background: color-mix(in oklab, var(--ok) 20%, var(--bg-2)); border-color: var(--ok); }
+.side-setup-btn { border: 1px solid color-mix(in oklab, var(--warn) 40%, var(--line)); background: color-mix(in oklab, var(--warn) 12%, var(--bg-2)); color: var(--warn); }
+.side-setup-btn:hover { background: color-mix(in oklab, var(--warn) 20%, var(--bg-2)); border-color: var(--warn); }
+.side-setup-btn .dot { width: 6px; height: 6px; border-radius: 3px; background: var(--warn); box-shadow: 0 0 6px var(--warn); }
 .side-label .ct { font-family: var(--mono); font-size: 10px; color: var(--fg-2); }
 .side-empty { padding: 10px 12px; font-size: 11.5px; color: var(--fg-3); }
 .hub-side-note { padding: 0 12px; font-size: 11.5px; color: var(--fg-2); line-height: 1.55; }

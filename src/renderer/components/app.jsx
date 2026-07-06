@@ -325,65 +325,6 @@ function App() {
   return (
     <div className="win">
       <div className="win-frame">
-        <div className="titlebar">
-          <div className="tb-brand no-drag" onClick={openHub}>
-            <Logo size={16}/>
-            <span>InferML</span>
-          </div>
-          <div className="tb-crumbs">
-            {view === 'session' && activeSessionObj && (<span className="tb-crumb active">{activeSessionObj.title || 'Session'}</span>)}
-          </div>
-          <div className="tb-spacer"/>
-          {!welcome && (
-            <div className="tb-actions no-drag">
-              {!pyStatus?.ready && !pyStatus?.runtimeInstalled && !pySetup?.running && !onboard && (
-                <button
-                  className="tb-pill tb-pill-warn no-drag"
-                  onClick={() => setOnboard(true)}
-                  title="Python runtime is not installed yet. Click to set it up."
-                >
-                  <Icon name="alert" size={11}/>
-                  <span>Setup Python runtime</span>
-                </button>
-              )}
-              {pySetup?.running && (
-                <button
-                  className="tb-pill tb-pill-info no-drag"
-                  onClick={() => setOnboard(true)}
-                  title={pySetup.step || 'Installing Python runtime…'}
-                >
-                  <span className="dot warn"/>
-                  <span>Installing runtime…</span>
-                </button>
-              )}
-              {updateInfo?.hasUpdate && !updatingTo && (
-                <button
-                  className="tb-pill tb-pill-update no-drag"
-                  onClick={() => openSettings('general')}
-                  title={`v${updateInfo.latestVersion} is available. Click to update from Settings.`}
-                >
-                  <Icon name="arrow_right" size={11}/>
-                  <span>Update available · v{String(updateInfo.latestVersion || '').replace(/^v/i, '')}</span>
-                </button>
-              )}
-              <div className="tb-pill" title={`${installedCount} models installed`}>
-                <span className={`dot ${installedCount > 0 ? 'ok' : 'warn'}`}/>
-                <span>{installedCount} local model{installedCount === 1 ? '' : 's'}</span>
-              </div>
-              <div className="tb-stats" title={hw?.gpu?.model || ''}>
-                {sbGpu(hw) && (<>
-                  <span className="tb-stat mono">GPU: {sbGpu(hw)}</span>
-                  <span className="tb-sep">|</span>
-                </>)}
-                <span className="tb-stat mono">RAM: {sbRam(hw)}</span>
-                <span className="tb-sep">|</span>
-                <span className="tb-stat mono">CPU: {sbCpu(hw)}</span>
-              </div>
-              <button className="tb-btn" onClick={() => openSettings()} title="Settings"><Icon name="settings" size={12}/></button>
-            </div>
-          )}
-        </div>
-
         <div className="app-body">
           <aside className="sidebar">
             <div className="side-section" style={{paddingTop:12}}>
@@ -435,6 +376,47 @@ function App() {
                 ))}
               </div>
               )}
+            </div>
+
+            <div className="side-footer">
+              {!pyStatus?.ready && !pyStatus?.runtimeInstalled && !pySetup?.running && !onboard && (
+                <button
+                  className="side-setup-btn"
+                  onClick={() => setOnboard(true)}
+                  title="Python runtime is not installed yet. Click to set it up."
+                >
+                  <Icon name="alert" size={12}/>
+                  <span>Setup Python runtime</span>
+                </button>
+              )}
+              {pySetup?.running && (
+                <button
+                  className="side-setup-btn"
+                  onClick={() => setOnboard(true)}
+                  title={pySetup.step || 'Installing Python runtime…'}
+                >
+                  <span className="dot warn"/>
+                  <span>Installing runtime…</span>
+                </button>
+              )}
+              {updateInfo?.hasUpdate && !updatingTo && (
+                <button
+                  className="side-update-btn"
+                  onClick={() => openSettings('general')}
+                  title={`v${updateInfo.latestVersion} is available. Click to update from Settings.`}
+                >
+                  <Icon name="arrow_right" size={12}/>
+                  <span>Update · v{String(updateInfo.latestVersion || '').replace(/^v/i, '')}</span>
+                </button>
+              )}
+              <div className="side-stats mono" title={hw?.gpu?.model || ''}>
+                {sbGpu(hw) && <span>GPU {sbGpu(hw)}</span>}
+                <span>RAM {sbRam(hw)}</span>
+                <span>CPU {sbCpu(hw)}</span>
+              </div>
+              <button className="new-chat-btn" onClick={() => openSettings()} title="Settings">
+                <Icon name="settings" size={14}/> Settings
+              </button>
             </div>
 
           </aside>

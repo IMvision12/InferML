@@ -39,6 +39,18 @@ try:
 except Exception as e:  # pragma: no cover
     print(f"[hf_service] failed to load supported_architectures.json: {e}")
 
+# Text-embedding pipeline tags. These aren't in supported_architectures.json
+# (embeddings run through the generic sentence-transformers / mean-pooling
+# backend, which handles any text encoder, so there's no fixed architecture
+# whitelist). They're handled explicitly in _is_embedding_model below.
+_EMBED_TASKS = {"feature-extraction", "sentence-similarity"}
+
+# Decoder-LM families our engine routes to a text-generation family adapter, not
+# the embedding task. Some decoder-based embedders (gte-Qwen, e5-mistral,
+# Qwen3-Embedding) carry embedding tags but can't run through our vector path, so
+# they're filtered out of the Embeddings tab even when their arch tag is missing.
+_DECODER_EMBED_FAMILIES = ("qwen", "llama", "mistral", "mixtral", "gemma", "falcon", "olmo", "bloom", "stablelm")
+
 _UNSUPPORTED_FORMAT_TAGS = {"gguf", "ggml", "llama.cpp", "exl2", "exllama", "exllamav2"}
 _TRUST_REMOTE_CODE_LIBRARIES = {"ml-fastvlm", "mistral-common"}
 
@@ -79,13 +91,43 @@ def _resolve_task(m: dict):
     for t in tags:
         if t in _TYPES_BY_TASK:
             return t
+    # Embedding tags aren't in the arch whitelist; recognize them last so a
+    # model with a "real" task (ASR / text-gen) that *also* carries a
+    # feature-extraction tag resolves to its real task above, not to embeddings.
+    if _lower(m.get("pipeline_tag")) in _EMBED_TASKS:
+        return _lower(m.get("pipeline_tag"))
     return None
+
+def _is_embedding_model(m: dict) -> bool:
+    """A text-embedding model our generic embedding backend can actually run:
+    tagged as a sentence-transformers / feature-extraction / sentence-similarity
+    model, loadable via transformers, and whose architecture doesn't belong to
+    another task. Audio feature extractors (wav2vec2/wavlm) and decoder-based
+    embedders (Qwen3-Embedding) carry embedding tags but resolve to ASR /
+    text-generation by architecture - our engine routes those elsewhere, so we
+    exclude them rather than open a workspace that can't produce a vector."""
+    library = _lower(m.get("library_name"))
+    tags = [_lower(t) for t in (m.get("tags") or [])]
+    is_st = library == "sentence-transformers" or "sentence-transformers" in tags
+    pipeline = _lower(m.get("pipeline_tag"))
+    if not (is_st or pipeline in _EMBED_TASKS):
+        return False
+    if library not in ("transformers", "sentence-transformers", ""):
+        return False
+    if _resolve_task(m) not in _EMBED_TASKS:
+        return False
+    hay = _lower(m.get("id") or m.get("modelId")) + " " + " ".join(tags)
+    if any(fam in hay for fam in _DECODER_EMBED_FAMILIES):
+        return False
+    return True
 
 def _is_natively_supported(m: dict) -> bool:
     library = _lower(m.get("library_name"))
     tags = [_lower(t) for t in (m.get("tags") or [])]
     if any(t in _UNSUPPORTED_FORMAT_TAGS for t in tags):
         return False
+    if _is_embedding_model(m):
+        return True
     if library in _LIBRARY_PASSTHROUGH:
         return True
     if library in ("transformers", "") or library in _TRUST_REMOTE_CODE_LIBRARIES:
@@ -124,9 +166,17 @@ def _fetch_model_list(q=None, task=None, library=None, limit=100) -> list:
     return _http_get_json(url)
 
 def search(q=None, task=None) -> dict:
-    queries = [{"q": q, "task": task, "library": "transformers", "limit": 100}]
-    if task or q:
-        queries.append({"q": q, "task": task, "limit": 100})
+    # The Embeddings tab (feature-extraction / sentence-similarity) fans out to
+    # both tags - the best encoders are split across them on the Hub - and then
+    # keeps only genuine embedding models.
+    embed_search = _lower(task) in _EMBED_TASKS
+    search_tasks = ["sentence-similarity", "feature-extraction"] if embed_search else [task]
+
+    queries = []
+    for st in search_tasks:
+        queries.append({"q": q, "task": st, "library": "transformers", "limit": 100})
+        if st or q:
+            queries.append({"q": q, "task": st, "limit": 100})
 
     lists = []
     errors = []
@@ -145,6 +195,8 @@ def search(q=None, task=None) -> dict:
             if not mid or mid in by_id:
                 continue
             if not _is_natively_supported(m):
+                continue
+            if embed_search and not _is_embedding_model(m):
                 continue
             by_id[mid] = m
 
