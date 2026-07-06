@@ -14,6 +14,7 @@ const HUB_TASKS = [
   { id: 'docs',         nm: 'Docs / OCR',   task: 'document-question-answering',  ic: 'file'     },
   { id: 'asr',          nm: 'ASR',          task: 'automatic-speech-recognition', ic: 'waveform' },
   { id: 'tts',          nm: 'TTS',          task: 'text-to-speech',               ic: 'waveform' },
+  { id: 'embed',        nm: 'Embeddings',   task: 'feature-extraction',           ic: 'embed'    },
 ];
 
 const MODEL_FAMILIES = [
@@ -44,6 +45,11 @@ const MODEL_FAMILIES = [
   { nm: 'FLUX',      q: 'flux' },
   { nm: 'SpeechT5',  q: 'speecht5' },
   { nm: 'Bark',      q: 'bark' },
+  { nm: 'MiniLM',    q: 'all-minilm' },
+  { nm: 'BGE',       q: 'bge' },
+  { nm: 'E5',        q: 'e5' },
+  { nm: 'GTE',       q: 'gte' },
+  { nm: 'Nomic',     q: 'nomic-embed' },
 ];
 
 const SUGGEST_TASKS = [
@@ -53,6 +59,7 @@ const SUGGEST_TASKS = [
   'object-detection',
   'mask-generation',
   'image-classification',
+  'feature-extraction',
 ];
 
 const SUGGEST_MAX_BYTES = 5 * 1024 * 1024 * 1024; 
@@ -109,6 +116,8 @@ const SUPPORTED_TASKS = new Set([
   'text-to-image',
   'image-to-image',
 
+  'feature-extraction',
+  'sentence-similarity',
 
 ]);
 
@@ -201,7 +210,7 @@ function ModelHub({ hw, onOpenModel, onOpenSettings, defaultInstalled = false, r
         picks.push({ ...pick, size: finalSize });
         seen.add(pick.id);
       }
-      if (picks.length >= 5) break;
+      if (picks.length >= 7) break;
     }
     return picks;
   }, [suggestedPool, suggestedSizes, installed]);

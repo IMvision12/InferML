@@ -31,6 +31,7 @@ inference = [
   "torch>=2.6",
   "torchvision",
   "torchaudio>=2.6",
+  "sentence-transformers",
   "diffusers",
   "accelerate",
   "timm",
@@ -54,7 +55,7 @@ Homepage = "https://github.com/IMvision12/InferML"
 # level). Map the package root to python/ and ship both shapes.
 [tool.setuptools]
 package-dir = { "" = "python" }
-py-modules = ["engine", "routing", "io_utils", "output_kinds", "_win_compat"]
+py-modules = ["engine", "routing", "io_utils", "output_kinds", "embedding_backend", "_win_compat"]
 
 [tool.setuptools.packages.find]
 where = ["python"]

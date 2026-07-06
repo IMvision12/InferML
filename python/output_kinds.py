@@ -54,3 +54,10 @@ def image(pil_image) -> dict:
 
 def audio(audio_array, sample_rate: int) -> dict:
     return {"kind": "audio", "dataUrl": _encode_wav(audio_array, sample_rate)}
+
+
+def vector(vec) -> dict:
+    """Feature extraction / embeddings. `vec` is a 1-D sequence of floats. The UI
+    only shows the dimensionality and a short preview, so that's all we ship."""
+    seq = [float(x) for x in vec]
+    return {"kind": "vector", "dim": len(seq), "sample": seq[:8]}

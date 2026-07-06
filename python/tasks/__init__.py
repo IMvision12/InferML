@@ -25,6 +25,7 @@ from .text_generation import (
     TextGenerationTask, TranslationTask, SummarizationTask,
 )
 from .misc_tasks import TextToSpeechTask
+from .feature_extraction import FeatureExtractionTask, SentenceSimilarityTask
 
 
 def _registry():
@@ -44,6 +45,8 @@ def _registry():
         TranslationTask(),
         SummarizationTask(),
         TextToSpeechTask(),
+        FeatureExtractionTask(),
+        SentenceSimilarityTask(),
     ]
     return {t.name: t for t in tasks}
 

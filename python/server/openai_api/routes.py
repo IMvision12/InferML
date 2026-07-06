@@ -19,6 +19,7 @@ from server import deps
 from server.openai_api.llm import (
     LLMNotLoaded, resolve_llm, build_inputs, generate_full, stream_generate,
 )
+from server.openai_api.embeddings import embed, EmbeddingError
 
 router = APIRouter(prefix="/v1")
 
@@ -48,15 +49,67 @@ async def list_models():
         ids.append(cur)
     try:
         from server.store_service import list_installed
+        _servable = ("text-generation", "conversational",
+                     "feature-extraction", "sentence-similarity")
         for mid, meta in list_installed().items():
-            if (meta or {}).get("task") in ("text-generation", "conversational") and mid not in ids:
+            if (meta or {}).get("task") in _servable and mid not in ids:
                 ids.append(mid)
     except Exception:
         pass
+    from server.openai_api.embeddings import DEFAULT_EMBED_MODEL
+    if DEFAULT_EMBED_MODEL not in ids:
+        ids.append(DEFAULT_EMBED_MODEL)
     created = _now()
     return {
         "object": "list",
         "data": [{"id": mid, "object": "model", "created": created, "owned_by": "inferml"} for mid in ids],
+    }
+
+def _encode_embedding(row, enc_format: str):
+    """OpenAI returns floats by default, or a base64 blob of little-endian
+    float32 when `encoding_format` is "base64"."""
+    if enc_format == "base64":
+        import base64
+        import numpy as np
+        arr = np.asarray(row, dtype="<f4")
+        return base64.b64encode(arr.tobytes()).decode("ascii")
+    return [float(x) for x in row]
+
+@router.post("/embeddings")
+async def embeddings(payload: dict = Body(...)):
+    inputs = payload.get("input")
+    model_req = payload.get("model")
+    enc_format = str(payload.get("encoding_format") or "float").lower()
+    dimensions = payload.get("dimensions")
+    if inputs is None:
+        return JSONResponse(status_code=400, content=_err("`input` is required.", "invalid_request_error"))
+    if enc_format not in ("float", "base64"):
+        return JSONResponse(status_code=400,
+                            content=_err(f"Unsupported encoding_format {enc_format!r}.", "invalid_request_error"))
+
+    async with deps.INFERENCE_LOCK:
+        try:
+            result = await deps.run_blocking(embed, model_req, inputs, True, dimensions)
+        except EmbeddingError as e:
+            return JSONResponse(status_code=400, content=_err(str(e), "invalid_request_error"))
+        except Exception as e:
+            import traceback
+            from engine import actionable_error
+            print("[/v1/embeddings] " + traceback.format_exc(), flush=True)
+            return JSONResponse(status_code=500, content=_err(actionable_error(e) or repr(e), "server_error"))
+
+    data = [
+        {"object": "embedding", "index": i, "embedding": _encode_embedding(row, enc_format)}
+        for i, row in enumerate(result["vectors"])
+    ]
+    return {
+        "object": "list",
+        "data": data,
+        "model": result["model_id"],
+        "usage": {
+            "prompt_tokens": result["prompt_tokens"],
+            "total_tokens": result["prompt_tokens"],
+        },
     }
 
 @router.post("/chat/completions")
