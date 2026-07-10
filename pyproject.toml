@@ -20,6 +20,7 @@ keywords = ["huggingface", "transformers", "inference", "openai", "local", "llm"
 dependencies = [
   "fastapi>=0.110",
   "uvicorn[standard]>=0.29",
+  "python-multipart>=0.0.9",
   "huggingface_hub",
   "platformdirs>=4",
   "psutil>=5.9",

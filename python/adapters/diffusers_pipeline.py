@@ -42,7 +42,8 @@ class DiffusersAdapter(Adapter):
         if not prompt:
             raise ValueError("Prompt required")
         kwargs = {k: params[k] for k in
-                  ("num_inference_steps", "guidance_scale", "negative_prompt", "strength")
+                  ("num_inference_steps", "guidance_scale", "negative_prompt", "strength",
+                   "width", "height")
                   if k in params}
         kwargs.setdefault("num_inference_steps", 20)
         kwargs.setdefault("guidance_scale", 7.5)
