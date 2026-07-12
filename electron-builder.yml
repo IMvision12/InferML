@@ -52,11 +52,23 @@ win:
       arch: [x64]
   icon: assets/logo.png
 
+# Artifact names deliberately carry NO version.
+#
+# GitHub exposes every release asset at a stable, guessable URL:
+#
+#   https://github.com/IMvision12/InferML/releases/latest/download/<filename>
+#
+# ...which 302s straight to the newest build. That only works if the filename is
+# predictable, so the version is dropped from it. The pay-off is that the website
+# can link directly at the installer with no GitHub API call - no rate limit, no
+# network round-trip, and the download still works with JavaScript disabled.
+# The version still lives in the release tag, title, and latest*.yml.
+
 nsis:
   oneClick: false                     # let the user choose the install dir
   allowToChangeInstallationDirectory: true
   perMachine: false                   # per-user install needs no admin rights
-  artifactName: ${productName}-Setup-${version}.${ext}
+  artifactName: ${productName}-Setup.${ext}          # InferML-Setup.exe
   shortcutName: InferML
   createDesktopShortcut: true
 
@@ -69,10 +81,10 @@ mac:
   icon: assets/logo.png
   category: public.app-category.developer-tools
   identity: null            # ad-hoc / unsigned until certs exist
-  artifactName: ${productName}-${version}-${arch}.${ext}
+  artifactName: ${productName}-${arch}.${ext}        # InferML-arm64.zip
 
 dmg:
-  artifactName: ${productName}-${version}-${arch}.${ext}
+  artifactName: ${productName}-${arch}.${ext}        # InferML-arm64.dmg
 
 linux:
   target:
@@ -83,7 +95,7 @@ linux:
   icon: assets/logo.png
   category: Development
   synopsis: Run any Hugging Face model locally
-  artifactName: ${productName}-${version}.${ext}
+  artifactName: ${productName}.${ext}                # InferML.AppImage
 
 publish:
   provider: github

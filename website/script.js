@@ -58,19 +58,30 @@
   });
 })();
 
-// ── OS detection + download links.
+// ── OS detection + direct download links.
 //
-// Highlights the visitor's platform, labels the hero button for their OS, and
-// resolves the buttons to the actual assets on the latest GitHub release.
+// Clicking Download starts the download. It never lands the visitor on GitHub.
 //
-// Everything degrades to the releases page, which is what the HTML ships: if the
-// API call fails, is rate-limited, or JS is off, every link still lands
-// somewhere correct. macOS is deliberately left pointing at the releases page -
-// the browser cannot tell Apple Silicon from Intel, and guessing wrong hands the
-// user a build that won't run.
+// The links point at GitHub's stable "latest asset" path, which 302s straight to
+// the newest build:
+//
+//   /releases/latest/download/InferML-Setup.exe
+//
+// There is deliberately NO GitHub API call here. The API is rate-limited (60
+// req/hr per IP) and returns 404 until the first release exists - either of which
+// used to knock every button back to the releases page. Because the artifact
+// names carry no version (see electron-builder.yml), these URLs can be hard-coded
+// and the platform cards work even with JavaScript disabled.
 (function () {
   const REPO = 'IMvision12/InferML';
-  const RELEASES = 'https://github.com/' + REPO + '/releases/latest';
+  const DL = (file) => `https://github.com/${REPO}/releases/latest/download/${file}`;
+
+  const ASSET = {
+    win: 'InferML-Setup.exe',
+    macArm: 'InferML-arm64.dmg',
+    macIntel: 'InferML-x64.dmg',
+    linux: 'InferML.AppImage',
+  };
 
   const ua = (navigator.userAgent || '').toLowerCase();
   const plat = (navigator.platform || '').toLowerCase();
@@ -78,17 +89,113 @@
   if (ua.includes('mac') || plat.includes('mac')) os = 'mac';
   else if (ua.includes('linux') || plat.includes('linux')) os = 'linux';
 
-  const KEY = { windows: 'win', mac: 'mac', linux: 'linux' };
-  const dlCard = document.querySelector('.dl-card[data-os="' + KEY[os] + '"]');
-  if (dlCard) dlCard.classList.add('is-you');
+  // Apple Silicon vs Intel. Handing an Intel Mac an arm64 build gives them an app
+  // that cannot run, so this needs to be right.
+  //
+  // The GPU string is the best signal available: every Apple Silicon Mac reports
+  // an Apple GPU, and no Intel Mac ever does (they ship Intel/AMD/Nvidia). It also
+  // beats userAgentData.architecture, which reports x86 for a browser running
+  // under Rosetta on an M-series machine - exactly the case we must not get wrong.
+  function isAppleSilicon() {
+    try {
+      const gl = document.createElement('canvas').getContext('webgl');
+      if (!gl) return null;
+      const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+      const renderer = dbg
+        ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '')
+        : String(gl.getParameter(gl.RENDERER) || '');
+      if (!renderer) return null;
+      if (/apple/i.test(renderer)) return true;
+      if (/intel|amd|radeon|nvidia|geforce/i.test(renderer)) return false;
+      return null;
+    } catch {
+      return null;
+    }
+  }
 
+  // Which macOS build to offer.
+  //
+  // The GPU check is only meaningful for a visitor who is ON a Mac. A Windows or
+  // Linux visitor clicking the macOS card has an Intel/AMD/Nvidia GPU that says
+  // nothing about the Mac they're downloading for - reading it would hand every
+  // one of them the Intel build. So only consult it on macOS; everyone else gets
+  // Apple Silicon, which is the large majority of Macs in use, and the Intel build
+  // is one visible link away.
+  const macIsIntel = () => os === 'mac' && isAppleSilicon() === false;
+  const macAsset = () => (macIsIntel() ? ASSET.macIntel : ASSET.macArm);
+
+  const forOs = {
+    windows: () => ASSET.win,
+    mac: macAsset,
+    linux: () => ASSET.linux,
+  };
+
+  // Platform cards: Windows and Linux are already correct in the markup; macOS is
+  // the only one that needs resolving, since its arch isn't known until now.
+  const KEY = { windows: 'win', mac: 'mac', linux: 'linux' };
+  const macCard = document.querySelector('.dl-card[data-os="mac"]');
+  if (macCard) macCard.href = DL(macAsset());
+
+  const you = document.querySelector(`.dl-card[data-os="${KEY[os]}"]`);
+  if (you) you.classList.add('is-you');
+
+  // Hero button: point it at this visitor's build and say which one it is.
+  const hero = document.getElementById('hero-dl');
   const label = document.getElementById('hero-dl-label');
+  if (hero) hero.href = DL(forOs[os]());
   if (label) {
     label.textContent =
       os === 'windows' ? 'Download for Windows'
-      : os === 'mac'   ? 'Download for macOS'
-      :                  'Download for Linux';
+      : os === 'linux' ? 'Download for Linux'
+      : macIsIntel()   ? 'Download for macOS (Intel)'
+      : 'Download for macOS';
   }
+
+  // ── Compatibility bridge for releases built before the filenames dropped their
+  // version (v2.0.0 shipped `InferML-Setup-2.0.0.exe`, which the stable URLs above
+  // cannot name). Ask the API what the newest release actually contains and match
+  // by pattern, so the buttons work regardless of which naming scheme is live.
+  //
+  // This is an upgrade, never a downgrade: if the API is rate-limited, offline, or
+  // returns nothing, the hard-coded links above stand and the buttons still work.
+  const MATCH = {
+    win: /\.exe$/i,
+    linux: /\.AppImage$/i,
+    macArm: /arm64\.dmg$/i,
+    macIntel: /(x64|x86_64|intel)\.dmg$/i,
+  };
+  const findAsset = (assets, re) => {
+    const hit = assets.find((a) => re.test(a.name || '') && !/\.blockmap$/i.test(a.name || ''));
+    return hit && hit.browser_download_url;
+  };
+
+  fetch(`https://api.github.com/repos/${REPO}/releases/latest`)
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error('no release'))))
+    .then((rel) => {
+      const assets = rel.assets || [];
+      const macKey = macIsIntel() ? 'macIntel' : 'macArm';
+      const real = {
+        win: findAsset(assets, MATCH.win),
+        linux: findAsset(assets, MATCH.linux),
+        mac: findAsset(assets, MATCH[macKey]),
+      };
+
+      document.querySelectorAll('.dl-card').forEach((el) => {
+        const url = real[el.getAttribute('data-os')];
+        if (url) el.href = url;
+      });
+      const heroUrl = real[KEY[os]];
+      if (hero && heroUrl) hero.href = heroUrl;
+
+      // Same for the secondary links, which name specific builds.
+      const intel = findAsset(assets, MATCH.macIntel);
+      const deb = findAsset(assets, /\.deb$/i);
+      document.querySelectorAll('.dl-alt a').forEach((a) => {
+        if (/x64\.dmg/i.test(a.href) && intel) a.href = intel;
+        else if (/\.deb/i.test(a.href) && deb) a.href = deb;
+      });
+    })
+    .catch(() => { /* keep the hard-coded stable URLs */ });
 
   // The hero command ships as the curl/sh line; Windows visitors get PowerShell.
   if (os === 'windows') {
@@ -100,37 +207,6 @@
     if (text) text.textContent = ps;
     if (prompt) prompt.textContent = '>';
   }
-
-  // Match an asset by file extension. electron-builder stamps the version into
-  // every filename, so there is no stable /latest/download/<name> path to guess.
-  const pick = (assets, ext) => {
-    const hit = assets.find((a) => (a.name || '').toLowerCase().endsWith(ext));
-    return hit && hit.browser_download_url;
-  };
-
-  fetch('https://api.github.com/repos/' + REPO + '/releases/latest')
-    .then((r) => (r.ok ? r.json() : Promise.reject(new Error('no release'))))
-    .then((rel) => {
-      const assets = rel.assets || [];
-      const urls = {
-        win: pick(assets, '.exe'),
-        linux: pick(assets, '.appimage'),
-        mac: null, // arch is undetectable in-browser; keep the releases page.
-      };
-
-      document.querySelectorAll('.dl-card').forEach((el) => {
-        const url = urls[el.getAttribute('data-os')];
-        if (url) el.href = url;
-      });
-
-      const hero = document.getElementById('hero-dl');
-      const heroUrl = urls[KEY[os]];
-      if (hero && heroUrl) hero.href = heroUrl;
-    })
-    .catch(() => {
-      /* Links already point at RELEASES from the markup. */
-      void RELEASES;
-    });
 })();
 
 // Toggle nav border on scroll for subtle separation.

@@ -1119,6 +1119,15 @@ a { color: inherit; text-decoration: none; }
   .cta-row .cmd-hero { width: 100%; }
 }
 
+/* ─── secondary download links (Intel Mac, .deb, all releases) ─────────── */
+.dl-alt {
+  max-width: 940px; margin: 18px auto 0;
+  text-align: center; font-size: 13px; color: var(--fg-3);
+}
+.dl-alt a { color: var(--fg-2); border-bottom: 1px solid var(--border); transition: color 0.15s, border-color 0.15s; }
+.dl-alt a:hover { color: var(--accent); border-color: var(--accent); }
+.dl-alt code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
 /* ─── install section: terminal alternative divider ────────────────────── */
 .install-alt {
   display: flex; align-items: center; gap: 16px;
