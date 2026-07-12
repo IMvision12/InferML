@@ -92,6 +92,42 @@ docker run --rm -p 11500:11500 inferml            # CPU
 docker run --rm --gpus all -p 11500:11500 inferml # GPU
 ```
 
+## Uninstall
+
+Remove the app itself:
+
+```bash
+pipx uninstall inferml
+```
+
+That leaves your settings and downloaded weights on disk. To wipe those too:
+
+```bash
+# macOS
+rm -rf ~/Library/Application\ Support/InferML   # settings, chats, HF token
+rm -rf ~/.cache/huggingface                     # downloaded models (GBs)
+rm -rf ~/inferml-outputs                        # MCP-generated images/audio
+```
+
+```bash
+# Linux
+rm -rf ~/.local/share/InferML
+rm -rf ~/.cache/huggingface
+rm -rf ~/inferml-outputs
+```
+
+```powershell
+# Windows (PowerShell)
+Remove-Item -Recurse -Force "$env:LOCALAPPDATA\InferML"
+Remove-Item -Recurse -Force "$env:USERPROFILE\.cache\huggingface"
+Remove-Item -Recurse -Force "$env:USERPROFILE\inferml-outputs"
+```
+
+Two caveats: the Hugging Face cache is **shared with every other HF tool** on the
+machine, so clearing it makes `transformers`/`diffusers` re-download elsewhere -
+skip that line if you'd rather keep the weights. And if you set `HF_HOME`,
+`HF_HUB_CACHE`, or `INFERML_DATA_DIR`, delete those locations instead.
+
 ## Development
 
 The React UI lives in `src/renderer/` (built with esbuild) and talks to the
