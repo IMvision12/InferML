@@ -12,7 +12,7 @@
 
 appId: app.inferml
 productName: InferML
-copyright: Copyright © 2026 InferML
+copyright: Copyright © 2026 Gitesh Chawda
 
 directories:
   output: dist-app
@@ -51,6 +51,8 @@ win:
     - target: nsis
       arch: [x64]
   icon: assets/logo.png
+
+  publisherName: Gitesh Chawda
 
 # Artifact names deliberately carry NO version.
 #

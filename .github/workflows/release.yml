@@ -132,8 +132,6 @@ jobs:
       # which extraResources then ships inside the app.
       - run: npm run build
 
-      # Uploads into the draft the `draft` job already created. Also emits the
-      # latest*.yml metadata that the in-app auto-updater reads.
       - name: Build and upload installers
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
