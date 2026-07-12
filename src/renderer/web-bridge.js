@@ -21,22 +21,19 @@
   const jpatch = (path, body) => jsend(path, 'PATCH', body);
   const jdelete = (path) => jsend(path, 'DELETE');
 
-  // After a self-update the server exits, upgrades, and relaunches with
-  // --no-browser. Wait for it to go down, then poll /api/health until the new
-  // instance answers, and reload this tab onto the new version.
-  function _reloadWhenServerReturns() {
-    const start = Date.now();
-    let sawDown = false;
-    const tick = async () => {
-      if (Date.now() - start > 180000) return;
-      let up = false;
-      try { up = (await fetch(BASE + '/api/health', { cache: 'no-store' })).ok; } catch {}
-      if (up && sawDown) { location.reload(); return; }
-      if (!up) sawDown = true;
-      setTimeout(tick, 1500);
-    };
-    setTimeout(tick, 3000);
-  }
+  // The Electron shell's preload bridge. Present in the desktop app, absent
+  // when the server is opened directly in a browser (dev). Updates are the one
+  // capability HTTP can't provide, so they delegate here.
+  const _desktop = (typeof window !== 'undefined' && window.infermlDesktop) || null;
+
+  const _noUpdates = (reason) => ({
+    check: () => Promise.resolve({ ok: false, hasUpdate: false, error: reason }),
+    download: () => Promise.resolve({ ok: false, error: reason }),
+    install: () => Promise.resolve({ ok: false, error: reason }),
+    onProgress: () => () => {},
+    onDownloaded: () => () => {},
+    onError: () => () => {},
+  });
 
 
 
@@ -241,22 +238,15 @@
       size: (key) => jget('/api/storage/size?key=' + encodeURIComponent(key)),
       clearHfCache: () => jpost('/api/storage/clear', { key: 'hfCache' }),
 
-      clearPyRuntime: () => Promise.resolve({ ok: false, error: 'The Python runtime is installed via pip - manage it with pipx, not from here.' }),
+      clearPyRuntime: () => Promise.resolve({ ok: false, error: 'The inference runtime lives in the app-managed environment. Reinstall it from Settings → Runtime, or delete the app data folder.' }),
     },
 
-    updates: {
-      check: (opts) => jget('/api/updates/check' + (opts && opts.force ? '?force=true' : '')),
-      // pipx has no separate download step; advance the UI straight to "ready to install".
-      download: () => Promise.resolve({ ok: true, alreadyDownloaded: true }),
-      install: async () => {
-        const r = await jpost('/api/updates/install');
-        if (r && r.ok) _reloadWhenServerReturns();
-        return r || { ok: false };
-      },
-      onProgress: () => () => {},
-      onDownloaded: () => () => {},
-      onError: () => () => {},
-    },
+    // Handled natively by electron-updater against GitHub Releases. Outside the
+    // desktop shell there is nothing to update, so report that rather than
+    // pretending.
+    updates: _desktop
+      ? _desktop.updates
+      : _noUpdates('Updates are only available in the InferML desktop app.'),
 
     window: {
       minimize: () => Promise.resolve(),

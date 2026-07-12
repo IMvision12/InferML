@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 //
-// Bundle the built frontend (and routing data) INTO the Python package so a
-// pip/pipx install is fully self-contained and needs no Node at runtime.
+// Bundle the built frontend (and routing data) INTO the Python tree, which the
+// server serves to the app window and electron-builder ships as extraResources.
+// Nothing needs Node at runtime.
 //
 //   src/renderer/dist/            -> python/server/webui/
 //   python/supported_architectures.json -> python/server/_data/
 //   python/model_overrides.json (if present) -> python/server/_data/
 //
 // Run after `npm run build:renderer`. `npm run build` does both.
-// `python/server/webui/` and `python/server/_data/` are shipped as package
-// data (see pyproject [tool.setuptools.package-data]).
+// `python/server/webui/` and `python/server/_data/` reach users because
+// electron-builder copies the whole `python/` tree (see electron-builder.yml
+// extraResources).
 
 const fs = require('fs');
 const path = require('path');

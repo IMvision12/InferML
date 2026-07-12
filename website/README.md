@@ -8,18 +8,40 @@ Static landing page. No framework, no build step - just open `index.html` in a b
 website/
 ├── index.html         # single-page landing
 ├── styles.css         # design tokens + sections
-├── script.js          # copy-to-clipboard, platform highlight, scroll effects
+├── script.js          # download links, OS detection, scroll effects
 ├── install.sh         # macOS/Linux installer  (curl -fsSL .../install.sh | sh)
-├── install.ps1        # Windows installer       (irm .../install.ps1 | iex)
+├── install.ps1        # Windows installer      (irm .../install.ps1 | iex)
 ├── assets/
 │   └── favicon.svg    # InferML constellation mark
 └── README.md          # this file
 ```
 
-## Install scripts
+## Two ways to install
 
-`install.sh` and `install.ps1` are served as static files from the site root, so
-the landing page can advertise a one-liner:
+The page offers both, because they suit different people: a **download button**
+for anyone who just wants an app, and a **one-liner** for people who live in a
+terminal. Both end up installing the exact same desktop build.
+
+### Download button
+
+Every download link in the markup points at the releases page:
+
+```
+https://github.com/IMvision12/InferML/releases/latest
+```
+
+On load, `script.js` calls the GitHub releases API and rewrites those links to
+the exact asset for the visitor's OS (`.exe` on Windows, `.AppImage` on Linux).
+If the API call fails, is rate-limited, or JS is off, the links stay on the
+releases page - so they are always correct, never broken.
+
+**macOS is deliberately left on the releases page.** The browser cannot
+distinguish Apple Silicon from Intel, and guessing wrong would hand the user a
+build that won't run; the release page shows both.
+
+### Install scripts
+
+`install.sh` and `install.ps1` are served as static files from the site root:
 
 ```
 # Windows
@@ -28,16 +50,26 @@ irm https://inferml.vercel.app/install.ps1 | iex
 curl -fsSL https://inferml.vercel.app/install.sh | sh
 ```
 
-Each script **requires an existing Python 3.10+** (it does *not* install Python -
-if it's missing the script prints where to get it and stops), then bootstraps
-pipx and runs `pipx install inferml` (server only). The inference stack
-(PyTorch + transformers) is installed **inside the app** on first launch, once
-the user picks CPU or GPU - so the script stays fast and hardware-agnostic.
+Both resolve the latest release from the GitHub API, pick the asset matching the
+host OS/arch, and install it:
 
-> The scripts and the page hard-code `https://inferml.vercel.app`. If you deploy to a
-> different domain, find-and-replace that host in `install.sh`, `install.ps1`,
-> and `index.html` (hero command, the `#install` one-liners, and `script.js`'s
-> Windows override). Serving over **HTTPS** is required for `| iex` / `| sh`.
+| Platform | What the script does |
+| --- | --- |
+| Windows | downloads the `.exe` and runs it silently (`/S`, per-user, no admin), then launches the app |
+| macOS | downloads the `.zip`, unpacks `InferML.app` into `/Applications` |
+| Linux | downloads the `.AppImage` into `~/.local/bin` and adds a `.desktop` entry |
+
+Each script checks for **Python 3.10+** and warns if it's missing, but installs
+anyway - the app has a proper first-run screen for that case.
+
+> On macOS the script is actually the *smoother* path: a file fetched with `curl`
+> carries no `com.apple.quarantine` attribute, so Gatekeeper doesn't block the
+> unsigned app the way it does when you download the `.dmg` in a browser.
+
+> The scripts and the page hard-code `https://inferml.vercel.app`. If you deploy
+> to a different domain, find-and-replace that host in `index.html` (hero command
+> + the `#install` one-liners) and `script.js` (the Windows override). Serving
+> over **HTTPS** is required for `| iex` / `| sh`.
 
 ## Local preview
 

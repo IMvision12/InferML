@@ -1,9 +1,0 @@
-include LICENSE
-include README.md
-include python/supported_architectures.json
-include python/model_overrides.json
-recursive-include python *.json
-recursive-include python/server/webui *
-recursive-include python/server/_data *
-global-exclude __pycache__/*
-global-exclude *.py[cod]

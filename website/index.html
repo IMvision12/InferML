@@ -6,10 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>InferML - run any Hugging Face model locally, with an OpenAI-compatible API</title>
   <meta name="description"
-    content="A local web server for running any Hugging Face model on your own machine. Install with pipx, open your browser, and point LangChain, LangGraph or the OpenAI SDK at it like Ollama. Detection, segmentation, VLMs, ASR, TTS, diffusion. All local, no cloud, no upload." />
+    content="A desktop app for running any Hugging Face model on your own machine. Download it for Windows, macOS or Linux, and point LangChain, LangGraph or the OpenAI SDK at it like Ollama. Detection, segmentation, VLMs, ASR, TTS, diffusion. All local, no cloud, no upload." />
   <meta property="og:title" content="InferML. Run any Hugging Face model, locally - with an OpenAI-compatible API." />
   <meta property="og:description"
-    content="pipx install inferml. Browse. Download. Run. All local, behind a browser UI and an OpenAI-compatible API. 200+ model families supported." />
+    content="Download the app. Browse. Run. All local, behind a native UI and an OpenAI-compatible API. 200+ model families supported." />
   <meta property="og:type" content="website" />
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="stylesheet" href="styles.css?v=32" />
@@ -55,7 +55,7 @@
         <a href="#models">Models</a>
         <a href="#features">Features</a>
         <a href="#api">API</a>
-        <a href="#install">Install</a>
+        <a href="#install">Download</a>
       </nav>
       <a href="https://github.com/IMvision12/InferML" target="_blank" rel="noopener" class="nav-gh" aria-label="GitHub repository" title="GitHub">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
@@ -65,10 +65,9 @@
       </a>
       <a href="#install" class="nav-cta">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 17l6-6-6-6"/>
-          <path d="M13 18h7"/>
+          <path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/>
         </svg>
-        Install
+        Download
       </a>
     </div>
   </header>
@@ -78,7 +77,7 @@
     <!-- Announcement banner -->
     <section class="banner">
       <span class="banner-badge">New</span>
-      <span>Now a local web server with an OpenAI-compatible API - point LangChain, LangGraph &amp; the OpenAI SDK at it.</span>
+      <span>Now a desktop app with an OpenAI-compatible API - point LangChain, LangGraph &amp; the OpenAI SDK at it.</span>
       <a href="#api">See the API</a>
     </section>
 
@@ -90,9 +89,9 @@
       <div class="hero-stars" id="hero-stars"></div>
       <h1 class="hero-h1">Open-source ML.<br /><span class="accent">Ready to run.</span></h1>
       <p class="hero-sub">
-        Pick any model from the Hugging Face Hub. Install with one line, open your browser.
+        Pick any model from the Hugging Face Hub. Download the app and run it.
         Detection, segmentation, VLMs, speech, diffusion, classification, depth, OCR, and more.
-        A local server with an OpenAI-compatible API. Runs on CPU or GPU.
+        Ships an OpenAI-compatible API. Runs on CPU or GPU.
       </p>
 
       <div class="pills">
@@ -109,18 +108,36 @@
       </div>
 
       <div class="cta-block">
-        <div class="cmd cmd-hero" id="hero-cmd" data-copy="curl -fsSL https://inferml.vercel.app/install.sh | sh">
-          <span class="cmd-prompt">$</span>
-          <code class="cmd-text" id="hero-cmd-text">curl -fsSL https://inferml.vercel.app/install.sh | sh</code>
-          <button class="cmd-copy" type="button" aria-label="Copy install command">
-            <svg class="cmd-copy-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="9" y="9" width="12" height="12" rx="2"/>
-              <path d="M5 15V5a2 2 0 0 1 2-2h10"/>
+        <!-- Two ways in, side by side. Both are filled in by script.js from the
+             visitor's OS: the button resolves to the real release asset, the
+             command flips to PowerShell on Windows. The markup below is the
+             no-JS fallback (download page + the curl line). -->
+        <div class="cta-row">
+          <a class="dl-btn" id="hero-dl"
+             href="https://github.com/IMvision12/InferML/releases/latest">
+            <svg class="dl-ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/>
             </svg>
-            <span class="cmd-copy-label">Copy</span>
-          </button>
+            <span id="hero-dl-label">Download InferML</span>
+          </a>
+
+          <span class="cta-or">or</span>
+
+          <div class="cmd cmd-hero" id="hero-cmd" data-copy="curl -fsSL https://inferml.vercel.app/install.sh | sh">
+            <span class="cmd-prompt" id="hero-cmd-prompt">$</span>
+            <code class="cmd-text" id="hero-cmd-text">curl -fsSL https://inferml.vercel.app/install.sh | sh</code>
+            <button class="cmd-copy" type="button" aria-label="Copy install command">
+              <svg class="cmd-copy-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="12" height="12" rx="2"/>
+                <path d="M5 15V5a2 2 0 0 1 2-2h10"/>
+              </svg>
+              <span class="cmd-copy-label">Copy</span>
+            </button>
+          </div>
         </div>
-        <p class="cta-sub">then run <code>inferml</code> and open <a href="#install">localhost:11500</a> · needs Python 3.10+</p>
+        <p class="cta-sub">
+          Free and open source · <a href="https://github.com/IMvision12/InferML/releases/latest">all platforms</a> · needs Python 3.10+
+        </p>
       </div>
     </section>
 
@@ -154,11 +171,7 @@
             </g>
           </svg>
           <span class="chrome-url">
-            <svg class="chrome-lock" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="5" y="11" width="14" height="9" rx="2"/>
-              <path d="M8 11V8a4 4 0 0 1 8 0v3"/>
-            </svg>
-            <span class="chrome-url-host">localhost:11500</span>
+            <span class="chrome-url-host">InferML</span>
           </span>
           <div class="chrome-spacer"></div>
           <span class="chrome-pill chrome-pill-installed">
@@ -593,72 +606,50 @@ resp = client.chat.completions.<span class="tok-fn">create</span>(
       </div>
     </section>
 
-    <!-- Platforms -->
-    <section id="platforms" class="platforms">
-      <div class="section-head">
-        <h2>Runs everywhere Python does.</h2>
-        <p>One <span class="mono">pipx install</span>, then <span class="mono">inferml</span>. Windows, macOS, and Linux -
-          CUDA, Apple MPS, or CPU, auto-detected.</p>
-      </div>
-      <div class="plat-grid">
-        <div class="plat" data-plat="windows" id="plat-windows">
-          <div class="plat-ic">
-            <svg viewBox="0 0 24 24" aria-label="Windows">
-              <path fill="#00A4EF" d="M0 3.449 9.75 2.1v9.451H0" />
-              <path fill="#00A4EF" d="M10.949 1.94 23.99 0v11.4H10.949" />
-              <path fill="#00A4EF" d="M0 12.6h9.75v9.451L0 20.699" />
-              <path fill="#00A4EF" d="M10.949 12.6H24V24l-13.051-1.9" />
-            </svg>
-          </div>
-          <div class="plat-name">Windows</div>
-          <div class="plat-meta">CUDA · CPU</div>
-        </div>
-        <div class="plat" data-plat="mac" id="plat-mac">
-          <div class="plat-ic">
-            <svg viewBox="0 0 24 24" aria-label="Apple">
-              <path fill="currentColor"
-                d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.74 1.18 0 2.5-.82 3.83-.7 1.5.12 2.65.72 3.4 1.8-3.09 1.85-2.35 5.92.48 7.07-.56 1.48-1.29 2.96-2.73 4.05h-.06zm-5.11-14.34c-.09-2.5 2.03-4.6 4.36-4.65.24 2.83-2.64 4.79-4.36 4.65" />
-            </svg>
-          </div>
-          <div class="plat-name">macOS</div>
-          <div class="plat-meta">Apple MPS · CPU</div>
-        </div>
-        <div class="plat" data-plat="linux" id="plat-linux">
-          <div class="plat-ic">
-            <svg viewBox="0 0 32 32" aria-label="Tux">
-              <!-- body -->
-              <path fill="#1e1e1e"
-                d="M16 4c-3.6 0-5.5 2.6-5.5 5.6 0 1.5.5 2.4.5 2.4-1.2 1.2-2.9 2.9-3.4 4.9-.4 1.7.1 3.1.8 4 .6.7 1.5 1 2.1.6.6-.4.5-1.3.5-1.3-.4-2 .9-3.1 1.7-3.8.4-.4.9-.8 1.3-1.4.4.6.9 1 1.3 1.4.8.7 2.1 1.8 1.7 3.8 0 0-.1.9.5 1.3.6.4 1.5.1 2.1-.6.7-.9 1.2-2.3.8-4-.5-2-2.2-3.7-3.4-4.9 0 0 .5-.9.5-2.4C21.5 6.6 19.6 4 16 4z" />
-              <!-- belly -->
-              <ellipse cx="16" cy="18" rx="3.2" ry="4.2" fill="#f2f2f2" />
-              <!-- eyes white -->
-              <ellipse cx="13.6" cy="10.2" rx="1.6" ry="2" fill="#ffffff" />
-              <ellipse cx="18.4" cy="10.2" rx="1.6" ry="2" fill="#ffffff" />
-              <!-- pupils -->
-              <circle cx="13.9" cy="10.4" r="0.7" fill="#1e1e1e" />
-              <circle cx="18.1" cy="10.4" r="0.7" fill="#1e1e1e" />
-              <!-- beak -->
-              <path fill="#f9a825" d="M16 11.8l-1.6 1.4 1.6 0.6 1.6-0.6z" />
-              <!-- feet -->
-              <ellipse cx="13" cy="23" rx="2.2" ry="1.2" fill="#f9a825" />
-              <ellipse cx="19" cy="23" rx="2.2" ry="1.2" fill="#f9a825" />
-            </svg>
-          </div>
-          <div class="plat-name">Linux</div>
-          <div class="plat-meta">CUDA · CPU</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Install: OS-aware one-liner. The script wraps pipx and requires an
-         existing Python 3.10+ (it does not install Python). -->
+    <!-- Download: one card per platform. script.js highlights the visitor's OS
+         and resolves each href to the real asset on the latest GitHub release.
+         (The old #platforms section lived here and showed the same three OS
+         cards again, one scroll above these - so it's gone.) -->
     <section id="install" class="install">
       <div class="section-head">
-        <h2>Up and running in a minute.</h2>
-        <p>One line in your terminal - no native binary, no code-signing hoops. You just need
+        <h2>Download and run.</h2>
+        <p>An app you install, not a server you babysit. You just need
           <b>Python 3.10+</b>, which we don't bundle;
           <a href="https://www.python.org/downloads/" target="_blank" rel="noopener">grab it here</a> if you're missing it.</p>
       </div>
+      <div class="downloads" id="downloads">
+        <a class="dl-card" data-os="win" href="https://github.com/IMvision12/InferML/releases/latest">
+          <svg class="dl-card-ic" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path fill="#00A4EF" d="M0 3.449 9.75 2.1v9.451H0"/>
+            <path fill="#00A4EF" d="M10.949 1.94 23.99 0v11.4H10.949"/>
+            <path fill="#00A4EF" d="M0 12.6h9.75v9.451L0 20.699"/>
+            <path fill="#00A4EF" d="M10.949 12.6H24V24l-13.051-1.9"/>
+          </svg>
+          <span class="dl-card-os">Windows</span>
+          <span class="dl-card-meta">.exe installer · x64</span>
+        </a>
+        <a class="dl-card" data-os="mac" href="https://github.com/IMvision12/InferML/releases/latest">
+          <svg class="dl-card-ic" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path fill="currentColor" d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.74 1.18 0 2.5-.82 3.83-.7 1.5.12 2.65.72 3.4 1.8-3.09 1.85-2.35 5.92.48 7.07-.56 1.48-1.29 2.96-2.73 4.05h-.06zm-5.11-14.34c-.09-2.5 2.03-4.6 4.36-4.65.24 2.83-2.64 4.79-4.36 4.65"/>
+          </svg>
+          <span class="dl-card-os">macOS</span>
+          <span class="dl-card-meta">.dmg · Apple Silicon &amp; Intel</span>
+        </a>
+        <a class="dl-card" data-os="linux" href="https://github.com/IMvision12/InferML/releases/latest">
+          <svg class="dl-card-ic" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M12 2c2.5 0 3.5 2 3.5 4.5 0 2 .5 3 1.5 4.5 1.2 1.8 2 3 2 4.5 0 2.5-3 4.5-7 4.5s-7-2-7-4.5c0-1.5.8-2.7 2-4.5 1-1.5 1.5-2.5 1.5-4.5C8.5 4 9.5 2 12 2Z"/>
+            <circle cx="10" cy="8" r="1" fill="currentColor" stroke="none"/>
+            <circle cx="14" cy="8" r="1" fill="currentColor" stroke="none"/>
+          </svg>
+          <span class="dl-card-os">Linux</span>
+          <span class="dl-card-meta">.AppImage &amp; .deb · x64</span>
+        </a>
+      </div>
+
+      <div class="install-alt">
+        <span class="install-alt-label">or install from a terminal</span>
+      </div>
+
       <div class="oneliners">
         <div class="oneliner">
           <div class="oneliner-os">
@@ -700,8 +691,11 @@ resp = client.chat.completions.<span class="tok-fn">create</span>(
           </div>
         </div>
       </div>
+
       <p class="install-foot">
-        On first launch, pick <b>CPU</b> or <b>GPU</b> - InferML installs the matching PyTorch build for you.
+        Both routes install the same app. On first launch, pick <b>CPU</b> or <b>GPU</b> -
+        InferML installs the matching PyTorch build for you. CUDA, Apple MPS, and CPU
+        are all auto-detected.
       </p>
     </section>
 

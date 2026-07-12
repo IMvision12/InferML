@@ -1,26 +1,21 @@
 name: release
 
-# Auto-publish to PyPI when pyproject.toml's `version` changes on main.
+# Build the desktop installers and attach them to a GitHub Release.
 #
-# Flow: bump `version` in pyproject.toml -> push to main. If that version has
-# not been released yet (no matching `v<version>` git tag), this builds the
-# package and trusted-publishes it to PyPI, then tags `v<version>` and creates
-# a GitHub Release. Pushing again without a version bump does nothing (the tag
-# already exists), so it never double-publishes.
+# Flow: bump `version` in package.json -> push to main. If that version has not
+# been released yet (no matching `v<version>` tag), we create ONE draft release,
+# fan out to a windows/macos/linux matrix that uploads installers into it, then
+# publish the draft. Pushing again without a version bump does nothing.
 #
-# Publishing uses PyPI Trusted Publishing (OIDC) - no API token. The registered
-# publisher must match: repo IMvision12/InferML, workflow release.yml, env Any.
+# This replaces the old PyPI trusted-publish workflow - InferML now ships as an
+# app you download, not a package you pip install.
 
 on:
-  # Manual trigger from the Actions tab - publishes the current pyproject.toml
-  # version if it hasn't been released yet (no matching tag). Use this to cut
-  # the first release, or to retry, without bumping the version.
   workflow_dispatch:
-  # Auto-trigger: a version bump in pyproject.toml pushed to main.
   push:
     branches: [main]
     paths:
-      - pyproject.toml
+      - package.json
 
 permissions:
   contents: read
@@ -30,7 +25,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Read the version and decide whether it's already been released.
+  # Validate the version and decide whether it still needs releasing.
   check:
     runs-on: ubuntu-latest
     outputs:
@@ -40,60 +35,143 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0   # need existing tags to compare against
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+
+      # The version lives in two places: package.json drives the release, the
+      # installer filenames and the auto-updater; server/__init__.py is what the
+      # running app reports at /api/health and in the UI. Nothing keeps them in
+      # step, so a drifted pair would ship an app that lies about its version.
+      # Fail loudly here rather than find out after publishing.
+      - name: Check version consistency
+        run: |
+          version=$(node -p "require('./package.json').version")
+          py_version=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' python/server/__init__.py)
+          echo "package.json            : $version"
+          echo "python/server/__init__.py: $py_version"
+          if [ "$version" != "$py_version" ]; then
+            echo "::error::Version mismatch - package.json says '$version' but python/server/__init__.py says '$py_version'. Bump both."
+            exit 1
+          fi
+
       - id: decide
         run: |
-          version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          version=$(node -p "require('./package.json').version")
           echo "version=$version" >> "$GITHUB_OUTPUT"
           if git rev-parse "v$version" >/dev/null 2>&1; then
             echo "is_new=false" >> "$GITHUB_OUTPUT"
             echo "v$version is already tagged - nothing to release."
           else
             echo "is_new=true" >> "$GITHUB_OUTPUT"
-            echo "New version v$version - releasing."
+            echo "New version v$version - building installers."
           fi
 
-  # Build + publish + tag, only when the version is new.
-  release:
+  # Create the draft release ONCE, before any builder runs.
+  #
+  # This job exists purely to kill a race. electron-builder's `--publish always`
+  # will create the release itself if it doesn't find one - and the three matrix
+  # jobs start simultaneously, so each can look, see nothing, and create its own.
+  # GitHub happily allows several drafts sharing a tag, so the result is 2-3
+  # drafts each holding a subset of the installers, and the publish step below
+  # then promotes an arbitrary, incomplete one. Creating the draft up front means
+  # every builder finds it and only ever uploads.
+  draft:
     needs: check
     if: needs.check.outputs.is_new == 'true'
     runs-on: ubuntu-latest
     permissions:
-      id-token: write   # OIDC trusted publishing to PyPI (no token)
-      contents: write   # create the git tag + GitHub Release
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # --generate-notes diffs against the previous tag
+
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.check.outputs.version }}
+        run: |
+          # Idempotent: a re-run after a failed build reuses the existing draft
+          # instead of erroring or making a second one.
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "Draft v$VERSION already exists - reusing it."
+            exit 0
+          fi
+          # A draft does not create the git tag; that happens when it's published.
+          # --target pins it to the exact commit we're building.
+          gh release create "v$VERSION" \
+            --draft \
+            --title "v$VERSION" \
+            --target "$GITHUB_SHA" \
+            --generate-notes
+
+  build:
+    needs: [check, draft]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write     # electron-builder uploads assets to the draft release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            args: --win
+          - os: macos-latest      # arm64 runner; builds both mac arches
+            args: --mac
+          - os: ubuntu-latest
+            args: --linux
     steps:
       - uses: actions/checkout@v4
 
-      # Build the React UI and bundle it into python/server/webui (gitignored,
-      # generated) so the compiled frontend ships inside the wheel.
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
+
       - run: npm ci
+
+      # Compiles the React renderer and bundles it into python/server/webui,
+      # which extraResources then ships inside the app.
       - run: npm run build
 
-      # Build sdist + wheel. MANIFEST.in pulls python/server/webui into the
-      # sdist; setuptools package-data includes it in the wheel built from it.
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: python -m pip install --upgrade build
-      - run: python -m build
-
-      # Trusted publish. skip-existing keeps a re-run from failing if the
-      # version somehow already landed on PyPI.
-      - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          skip-existing: true
-
-      # Tag the released commit and open a GitHub Release with auto notes.
-      - name: Tag and create GitHub Release
+      # Uploads into the draft the `draft` job already created. Also emits the
+      # latest*.yml metadata that the in-app auto-updater reads.
+      - name: Build and upload installers
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder ${{ matrix.args }} --publish always
+
+  # All three platforms uploaded - turn the draft into a real release. This is
+  # also what finally creates the v<version> tag.
+  publish:
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # No checkout here, so gh has no git remote to infer the repo from. GH_REPO
+    # tells it directly - cheaper than cloning the tree just to edit a release.
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      VERSION: ${{ needs.check.outputs.version }}
+    steps:
+      # Check the draft is complete BEFORE making it public. A half-uploaded
+      # release that goes live is worse than no release: the website and the
+      # auto-updater both resolve through /releases/latest, so users would be
+      # handed a version that has no build for their platform.
+      - name: Verify every platform actually shipped
         run: |
-          gh release create "v${{ needs.check.outputs.version }}" \
-            --title "v${{ needs.check.outputs.version }}" \
-            --generate-notes
+          assets=$(gh release view "v$VERSION" --json assets --jq '.assets[].name')
+          echo "$assets" | sed 's/^/  /'
+          missing=0
+          for pattern in '\.exe$' '\.dmg$' '\.AppImage$' '\.deb$' '^latest\.yml$' '^latest-mac\.yml$' '^latest-linux\.yml$'; do
+            if ! echo "$assets" | grep -qE "$pattern"; then
+              echo "::error::Draft v$VERSION is missing an asset matching /$pattern/ - not publishing."
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+          echo "All platforms present."
+
+      - name: Publish the release
+        run: |
+          gh release edit "v$VERSION" --draft=false --latest
+          echo "Published v$VERSION."

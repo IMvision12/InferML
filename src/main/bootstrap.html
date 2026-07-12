@@ -1,0 +1,179 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>InferML</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --panel: #12151d;
+    --border: #232838;
+    --text: #e6e9f0;
+    --muted: #8b93a7;
+    --accent: #6d8cff;
+    --danger: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: var(--bg); color: var(--text);
+    font: 14px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-user-select: none; user-select: none;
+  }
+  .wrap { width: 560px; max-width: calc(100vw - 64px); }
+  .mark {
+    width: 44px; height: 44px; border-radius: 12px; margin: 0 auto 22px;
+    background: linear-gradient(135deg, var(--accent), #9d6dff);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 19px; color: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 19px; font-weight: 600; text-align: center; }
+  p  { margin: 0; color: var(--muted); text-align: center; }
+  .step { margin-top: 22px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .spinner {
+    width: 14px; height: 14px; border-radius: 50%; flex: none;
+    border: 2px solid var(--border); border-top-color: var(--accent);
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .detail { margin-top: 6px; font-size: 12px; color: var(--muted); text-align: center; word-break: break-all; }
+
+  .log {
+    margin-top: 18px; height: 132px; overflow: auto; padding: 10px 12px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--muted); white-space: pre-wrap; word-break: break-all;
+    -webkit-user-select: text; user-select: text;
+  }
+  .log:empty { display: none; }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    padding: 26px 26px 22px; text-align: center;
+  }
+  .card h1 { text-align: center; }
+  .card p  { text-align: center; }
+  .hint {
+    margin-top: 16px; padding: 10px 12px; border-radius: 9px;
+    background: #0e111a; border: 1px solid var(--border);
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--muted); text-align: left;
+    -webkit-user-select: text; user-select: text;
+  }
+  .row { margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
+  button {
+    font: inherit; font-size: 13px; font-weight: 500;
+    padding: 9px 18px; border-radius: 9px; cursor: pointer;
+    border: 1px solid var(--border); background: transparent; color: var(--text);
+  }
+  button:hover { border-color: #36405c; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { filter: brightness(1.08); }
+  .err { color: var(--danger); }
+  .mono-err {
+    margin-top: 14px; max-height: 180px; overflow: auto; padding: 10px 12px;
+    background: #0e111a; border: 1px solid var(--border); border-radius: 9px;
+    font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--muted); white-space: pre-wrap; text-align: left; word-break: break-all;
+    -webkit-user-select: text; user-select: text;
+  }
+  [hidden] { display: none !important; }
+</style>
+
+<div class="wrap">
+  <div class="mark">IM</div>
+
+  <!-- state: booting -->
+  <section id="loading">
+    <h1>Starting InferML</h1>
+    <p id="sub">Preparing your local model runtime.</p>
+    <div class="step">
+      <div class="spinner"></div>
+      <strong id="step" style="font-weight:500">Looking for Python</strong>
+    </div>
+    <div class="detail" id="detail"></div>
+    <pre class="log" id="log"></pre>
+  </section>
+
+  <!-- state: no usable Python -->
+  <section id="no-python" class="card" hidden>
+    <h1>Python <span id="min">3.10</span>+ is required</h1>
+    <p id="np-body">
+      InferML runs models using your system's Python. Install it once, then come
+      back and press Re-check - no other setup is needed.
+    </p>
+    <div class="hint" id="np-hint" hidden></div>
+    <div class="hint" id="np-tip"></div>
+    <div class="row">
+      <button class="primary" id="np-download">Download Python</button>
+      <button id="np-retry">Re-check</button>
+    </div>
+  </section>
+
+  <!-- state: boot failed -->
+  <section id="failed" class="card" hidden>
+    <h1 class="err" id="f-title">Something went wrong</h1>
+    <p>InferML could not finish starting up.</p>
+    <div class="mono-err" id="f-msg"></div>
+    <div class="row">
+      <button class="primary" id="f-retry">Try again</button>
+      <button id="f-logs">Open data folder</button>
+    </div>
+  </section>
+</div>
+
+<script>
+  const D = window.infermlDesktop;
+  const $ = (id) => document.getElementById(id);
+
+  const show = (which) => {
+    for (const id of ['loading', 'no-python', 'failed']) {
+      $(id).hidden = id !== which;
+    }
+  };
+
+  D.boot.onStatus(({ step, detail }) => {
+    show('loading');
+    if (step) $('step').textContent = step;
+    $('detail').textContent = detail || '';
+  });
+
+  D.boot.onLog(({ line }) => {
+    const log = $('log');
+    // pip is chatty; keep the tail bounded so this never becomes a memory leak.
+    log.textContent = (log.textContent + line + '\n').split('\n').slice(-400).join('\n');
+    log.scrollTop = log.scrollHeight;
+  });
+
+  D.boot.onPythonMissing(({ min, tooOld, platform }) => {
+    $('min').textContent = min;
+
+    // An interpreter that exists but is too old is a different problem from no
+    // interpreter at all - say which one we found, or the user will reinstall
+    // the same version and hit this screen again.
+    if (tooOld && tooOld.length) {
+      $('np-hint').hidden = false;
+      $('np-hint').textContent =
+        'Found, but too old:\n  ' + tooOld.join('\n  ');
+    }
+
+    $('np-tip').textContent =
+      platform === 'win32'
+        ? 'On Windows, tick "Add python.exe to PATH" in the installer.'
+        : platform === 'darwin'
+          ? 'On macOS you can also run:  brew install python@3.12'
+          : 'On Debian/Ubuntu:  sudo apt install python3 python3-venv';
+
+    show('no-python');
+  });
+
+  D.boot.onError(({ title, message }) => {
+    $('f-title').textContent = title || 'Something went wrong';
+    $('f-msg').textContent = message || '';
+    show('failed');
+  });
+
+  const retry = () => { show('loading'); $('log').textContent = ''; D.boot.retry(); };
+  $('np-retry').onclick = retry;
+  $('f-retry').onclick = retry;
+  $('np-download').onclick = () => D.boot.openPythonDownload();
+  $('f-logs').onclick = () => D.app.showLogs();
+</script>

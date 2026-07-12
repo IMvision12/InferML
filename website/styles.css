@@ -874,33 +874,6 @@ a { color: inherit; text-decoration: none; }
   margin: 0 4px 6px 0;
 }
 
-/* ─── platforms ────────────────────────────────────────────────────────── */
-.plat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-@media (max-width: 760px) { .plat-grid { grid-template-columns: 1fr; } }
-.plat {
-  background: var(--bg-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: 32px 24px;
-  text-align: center;
-  transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
-}
-.plat:hover {
-  border-color: var(--accent);
-  transform: translateY(-4px);
-  box-shadow: 0 18px 40px rgba(96, 165, 250, 0.12);
-}
-.plat-ic {
-  height: 56px; margin-bottom: 14px;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--fg);
-  transition: transform 0.4s;
-}
-.plat:hover .plat-ic { transform: scale(1.15); }
-.plat-ic svg { width: 48px; height: 48px; display: block; }
-.plat-name { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 4px; }
-.plat-meta { font-size: 12.5px; color: var(--fg-3); font-family: 'JetBrains Mono', monospace; }
-
 /* ─── install notes (unsigned-binary warnings) ─────────────────────────── */
 .install-notes { max-width: 1200px; margin: 100px auto 0; padding: 0 32px; }
 .install-notes .section-head { margin-bottom: 36px; }
@@ -978,11 +951,14 @@ a { color: inherit; text-decoration: none; }
   max-width: 100%;
 }
 .cmd-hero {
-  padding: 15px 14px 15px 18px;
+  padding: 14px 12px 14px 18px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(96, 165, 250, 0.1) inset;
 }
 .cmd-prompt { color: var(--accent); font-weight: 600; user-select: none; flex-shrink: 0; }
 .cmd-text {
+  /* nowrap text in a flex row will happily blow past its container unless it is
+     allowed to shrink; it scrolls inside itself instead (overflow-x below). */
+  min-width: 0;
   color: var(--fg); font-size: 14.5px; white-space: nowrap;
   overflow-x: auto; scrollbar-width: none;
 }
@@ -1031,7 +1007,6 @@ a { color: inherit; text-decoration: none; }
   min-width: 0; max-width: 260px;
   overflow: hidden;
 }
-.chrome-lock { color: var(--ok); flex-shrink: 0; }
 .chrome-url-host { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ─── api ──────────────────────────────────────────────────────────────── */
@@ -1128,27 +1103,106 @@ a { color: inherit; text-decoration: none; }
   line-height: 1.9;
 }
 
-/* Highlight the visitor's own platform card (set by script.js) */
-.plat.is-you { border-color: rgba(96, 165, 250, 0.5); box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.22); }
+
+/* ─── hero CTA: download button + one-liner, side by side ──────────────── */
+.cta-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 18px; flex-wrap: wrap;
+}
+.cta-or {
+  color: var(--fg-3); font-size: 13px; user-select: none;
+}
+/* Below the fold of a phone the two stack; the "or" reads oddly centred, so
+   let the command block go full width and keep the button prominent. */
+@media (max-width: 820px) {
+  .cta-row { flex-direction: column; gap: 14px; }
+  .cta-row .cmd-hero { width: 100%; }
+}
+
+/* ─── install section: terminal alternative divider ────────────────────── */
+.install-alt {
+  display: flex; align-items: center; gap: 16px;
+  max-width: 940px; margin: 34px auto 20px;
+}
+.install-alt::before,
+.install-alt::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.install-alt-label {
+  color: var(--fg-3); font-size: 12.5px; white-space: nowrap;
+}
 
 /* ─── install one-liners (OS-specific curl/irm) ────────────────────────── */
-.oneliners { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 940px; margin: 0 auto; }
-@media (max-width: 760px) { .oneliners { grid-template-columns: 1fr; } }
+/* minmax(0, 1fr), not 1fr: a `1fr` track keeps min-width:auto, so it refuses to
+   shrink below the min-content of its contents - and the commands inside are
+   nowrap code. That let the tracks push the grid past its max-width and overflow
+   to the right, which made the whole block sit off-centre from the cards above.
+   The min-width:0 chain below carries that same permission down to the text. */
+.oneliners {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px; max-width: 940px; margin: 0 auto;
+}
+@media (max-width: 760px) { .oneliners { grid-template-columns: minmax(0, 1fr); } }
 .oneliner {
+  min-width: 0;
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   padding: 20px;
   display: flex; flex-direction: column; gap: 14px;
-  transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+  transition: border-color 0.3s;
 }
-.oneliner:hover { border-color: rgba(96, 165, 250, 0.4); transform: translateY(-3px); box-shadow: 0 16px 40px rgba(96, 165, 250, 0.1); }
+.oneliner:hover { border-color: rgba(96, 165, 250, 0.4); }
 .oneliner-os {
   display: flex; align-items: center; gap: 8px;
   font-size: 13px; font-weight: 600; color: var(--fg-2);
   letter-spacing: -0.01em;
 }
 .oneliner-os svg { display: block; flex-shrink: 0; }
-.oneliner .cmd { display: flex; width: 100%; padding: 11px 8px 11px 13px; gap: 8px; border-radius: 10px; }
-.oneliner .cmd-text { font-size: 12.5px; }
-.oneliner .cmd-copy { height: 28px; padding: 0 9px; font-size: 11.5px; }
+.oneliner .cmd { display: flex; width: 100%; min-width: 0; padding: 11px 8px 11px 13px; gap: 8px; border-radius: 10px; }
+/* The command scrolls inside its own box rather than widening the card. */
+.oneliner .cmd-text { font-size: 12.5px; min-width: 0; flex: 1 1 auto; }
+.oneliner .cmd-copy { height: 28px; padding: 0 9px; font-size: 11.5px; flex-shrink: 0; }
+
+/* ─── download button (hero) ───────────────────────────────────────────── */
+.dl-btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 15px 26px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), #818cf8);
+  color: #0a0b0d;
+  font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
+  box-shadow: 0 12px 40px rgba(96, 165, 250, 0.25);
+  transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+}
+.dl-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+  box-shadow: 0 16px 48px rgba(96, 165, 250, 0.35);
+}
+.dl-btn:hover .dl-ic { animation: cta-download-bounce 0.6s ease; }
+.dl-ic { display: block; flex-shrink: 0; }
+
+/* ─── download cards (one per platform) ────────────────────────────────── */
+.downloads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 940px; margin: 0 auto; }
+@media (max-width: 760px) { .downloads { grid-template-columns: 1fr; } }
+.dl-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 24px 20px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  text-align: center;
+  transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+}
+.dl-card:hover {
+  border-color: rgba(96, 165, 250, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px rgba(96, 165, 250, 0.1);
+}
+.dl-card-ic { display: block; margin-bottom: 4px; color: var(--fg-2); }
+.dl-card-os { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; color: var(--fg); }
+.dl-card-meta { font-size: 12.5px; color: var(--fg-3); font-family: 'JetBrains Mono', monospace; }
+/* The visitor's own OS (set by script.js) */
+.dl-card.is-you { border-color: rgba(96, 165, 250, 0.5); box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.22); }

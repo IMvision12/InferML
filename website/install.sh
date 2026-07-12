@@ -1,69 +1,146 @@
 #!/bin/sh
-# InferML installer (macOS / Linux)
+# InferML installer for macOS and Linux.
 #
 #   curl -fsSL https://inferml.vercel.app/install.sh | sh
 #
-# Installs the `inferml` command via pipx. InferML is a Python app, so it needs
-# an existing Python 3.10+ - this script does NOT install Python. If Python is
-# missing (or too old) it stops and tells you where to get it.
+# Resolves the latest desktop build from GitHub Releases and installs it:
+#   macOS  -> unpacks InferML.app into /Applications
+#   Linux  -> drops the AppImage in ~/.local/bin + adds a desktop entry
+#
+# On macOS this is actually the smoothest path: a file fetched with curl carries
+# no com.apple.quarantine attribute, so Gatekeeper doesn't block the (unsigned)
+# app the way it does when you download the .dmg in a browser.
+
 set -eu
 
-# Colors only when writing to a terminal (piped-to-sh keeps stdout a tty).
-if [ -t 1 ]; then
-  RED="$(printf '\033[31m')"; GRN="$(printf '\033[32m')"; YLW="$(printf '\033[33m')"
-  DIM="$(printf '\033[2m')"; RST="$(printf '\033[0m')"
-else
-  RED=""; GRN=""; YLW=""; DIM=""; RST=""
-fi
-info() { printf '%s\n' "${DIM}$1${RST}"; }
-ok()   { printf '%s\n' "${GRN}$1${RST}"; }
-warn() { printf '%s\n' "${YLW}$1${RST}"; }
-die()  { printf '%s\n' "${RED}$1${RST}" >&2; exit 1; }
+REPO="IMvision12/InferML"
+API="https://api.github.com/repos/${REPO}/releases/latest"
 
-# --- require Python 3.10+ (we do not install it) ---------------------------
-PY=""
-for c in python3 python; do
-  if command -v "$c" >/dev/null 2>&1; then
-    if "$c" -c 'import sys; sys.exit(0 if sys.version_info[:2] >= (3, 10) else 1)' 2>/dev/null; then
-      PY="$c"; break
-    fi
+info() { printf '\033[36m>>\033[0m %s\n' "$1"; }
+warn() { printf '\033[33m!!\033[0m %s\n' "$1"; }
+die()  { printf '\033[31mxx\033[0m %s\n' "$1" >&2; exit 1; }
+
+command -v curl >/dev/null 2>&1 || die "curl is required."
+
+# --- Python check -------------------------------------------------------------
+# InferML runs models with your own Python. The app explains this on first launch
+# if it's missing, so don't hard-fail here.
+python_ok() {
+  for py in python3 python; do
+    command -v "$py" >/dev/null 2>&1 || continue
+    "$py" -c 'import sys; sys.exit(0 if sys.version_info[:2] >= (3, 10) else 1)' 2>/dev/null && return 0
+  done
+  return 1
+}
+if ! python_ok; then
+  warn "Python 3.10+ was not found. InferML needs it to run models."
+  case "$(uname -s)" in
+    Darwin) warn "Install it with:  brew install python@3.12" ;;
+    *)      warn "Install it with:  sudo apt install python3 python3-venv" ;;
+  esac
+  warn "Continuing - the app will walk you through it on first launch."
+fi
+
+# --- Pick the right asset -----------------------------------------------------
+OS="$(uname -s)"
+ARCH="$(uname -m)"
+
+case "$OS" in
+  Darwin)
+    case "$ARCH" in
+      arm64|aarch64) PATTERN="arm64.zip" ;;
+      x86_64)        PATTERN="x64.zip" ;;
+      *)             die "Unsupported macOS architecture: $ARCH" ;;
+    esac
+    ;;
+  Linux)
+    case "$ARCH" in
+      x86_64|amd64) PATTERN=".AppImage" ;;
+      *)            die "Unsupported Linux architecture: $ARCH (only x86_64 is built)." ;;
+    esac
+    ;;
+  *)
+    die "Unsupported OS: $OS. Windows users: irm https://inferml.vercel.app/install.ps1 | iex"
+    ;;
+esac
+
+info "Looking up the latest release"
+JSON="$(curl -fsSL -H 'User-Agent: inferml-installer' "$API")" \
+  || die "Could not reach GitHub."
+
+URL="$(printf '%s' "$JSON" \
+  | grep -o '"browser_download_url"[[:space:]]*:[[:space:]]*"[^"]*"' \
+  | sed 's/.*"\(https[^"]*\)".*/\1/' \
+  | grep -- "$PATTERN" \
+  | head -n 1)"
+
+[ -n "$URL" ] || die "The latest release has no asset matching '$PATTERN'."
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+FILE="$TMP/$(basename "$URL")"
+info "Downloading $(basename "$URL")"
+curl -fL# -o "$FILE" "$URL" || die "Download failed."
+
+# --- Install ------------------------------------------------------------------
+if [ "$OS" = "Darwin" ]; then
+  command -v unzip >/dev/null 2>&1 || die "unzip is required."
+  info "Unpacking"
+  unzip -q "$FILE" -d "$TMP/app"
+
+  APP="$(find "$TMP/app" -maxdepth 1 -name '*.app' | head -n 1)"
+  [ -n "$APP" ] || die "No .app found inside the archive."
+
+  DEST="/Applications/InferML.app"
+  info "Installing to $DEST"
+  if [ -w /Applications ]; then
+    rm -rf "$DEST"
+    mv "$APP" "$DEST"
+  else
+    warn "/Applications needs admin rights - you may be prompted for your password."
+    sudo rm -rf "$DEST"
+    sudo mv "$APP" "$DEST"
   fi
-done
 
-if [ -z "$PY" ]; then
-  die "InferML needs Python 3.10 or newer, which wasn't found on your PATH.
+  info "InferML installed. Starting it now."
+  open -a "$DEST" || true
 
-Install Python first - https://www.python.org/downloads/
-(or via your package manager: brew install python  /  sudo apt install python3)
+else
+  BIN_DIR="$HOME/.local/bin"
+  DEST="$BIN_DIR/InferML.AppImage"
+  mkdir -p "$BIN_DIR"
 
-then re-run:  curl -fsSL https://inferml.vercel.app/install.sh | sh"
+  info "Installing to $DEST"
+  mv "$FILE" "$DEST"
+  chmod +x "$DEST"
+
+  # A desktop entry so it shows up in the launcher like a normal app.
+  APPS="$HOME/.local/share/applications"
+  mkdir -p "$APPS"
+  cat > "$APPS/inferml.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=InferML
+Comment=Run any Hugging Face model locally
+Exec=$DEST
+Icon=inferml
+Categories=Development;Science;
+Terminal=false
+EOF
+
+  case ":$PATH:" in
+    *":$BIN_DIR:"*) ;;
+    *) warn "$BIN_DIR is not on your PATH - add it to run 'InferML.AppImage' from a shell." ;;
+  esac
+
+  # AppImages need FUSE; without it the binary exits with a cryptic error.
+  if ! command -v fusermount >/dev/null 2>&1 && ! command -v fusermount3 >/dev/null 2>&1; then
+    warn "FUSE was not found. If the app won't start, install it:"
+    warn "  sudo apt install libfuse2       # Debian/Ubuntu"
+    warn "  ...or run it with:  $DEST --appimage-extract-and-run"
+  fi
+
+  info "InferML installed. Launch it from your applications menu, or run:"
+  info "  $DEST"
 fi
-info "Using $("$PY" --version 2>&1) ($(command -v "$PY"))"
-
-# --- ensure pipx ------------------------------------------------------------
-if ! "$PY" -m pipx --version >/dev/null 2>&1; then
-  info "Installing pipx..."
-  "$PY" -m pip install --user pipx >/dev/null 2>&1 \
-    || die "Couldn't install pipx. Try manually:  $PY -m pip install --user pipx"
-  "$PY" -m pipx ensurepath >/dev/null 2>&1 || true
-fi
-
-# --- install InferML (server only; the app installs the CPU/GPU stack on first
-#     launch, so we don't pull torch here) --------------------------------------
-info "Installing the InferML server..."
-# Install if missing, then upgrade if already present. Avoids `pipx install
-# --force`, which with the uv backend fails to clear an existing venv. This
-# covers both fresh installs and updates without recreating the venv.
-"$PY" -m pipx install inferml \
-  || die "Install failed. See the output above."
-"$PY" -m pipx upgrade inferml || true
-
-printf '\n'
-ok "InferML is installed."
-printf '\n'
-info "Start it with:"
-printf '    %sinferml%s\n' "${GRN}" "${RST}"
-info "then open http://localhost:11500 in your browser."
-info "On first launch, pick CPU or GPU to install the model runtime (PyTorch + transformers)."
-printf '\n'
-warn "If the 'inferml' command isn't found, open a new terminal - pipx just updated your PATH."

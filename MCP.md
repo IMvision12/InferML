@@ -1,61 +1,79 @@
 # Using InferML from Claude (MCP)
 
-InferML ships an [MCP](https://modelcontextprotocol.io) server, `inferml-mcp`, that
-hands your local models to Claude and any other MCP-speaking client. Claude can
-then look at an image and detect what's in it, segment it, transcribe a recording,
-speak, generate a picture, or run a small on-device LLM — all without anything
-leaving your machine.
+InferML ships an [MCP](https://modelcontextprotocol.io) server that hands your
+local models to Claude and any other MCP-speaking client. Claude can then look at
+an image and detect what's in it, segment it, transcribe a recording, speak,
+generate a picture, or run a small on-device LLM — all without anything leaving
+your machine.
 
-`inferml-mcp` is a **client of a running InferML server**, not a second copy of the
-engine. That means it shares the models the browser UI already has loaded: the
-first call to a model pays the load cost, every later call — from the UI or from
-Claude — is instant. It also means **InferML has to be running**; the MCP server
-will not start it for you.
+The MCP server is a **client of the running InferML app**, not a second copy of
+the engine. That means it shares the models the app already has loaded: the first
+call to a model pays the load cost, every later call — from the app window or
+from Claude — is instant.
+
+It also means **InferML has to be running** — though not necessarily *open*. The
+app lives in your tray, so closing the window is fine; Claude keeps working. Only
+"Quit InferML" stops it. Turn on *Launch at login* in the tray menu and it's
+always available.
 
 ## Install
 
-```bash
-pipx install "inferml[mcp]"
-```
+Nothing to install. The desktop app already has everything the MCP server needs
+(`mcp` and `httpx` live in the environment it manages), and on every launch it
+writes a launcher script into its data folder:
 
-Already have InferML? Re-run the same command to add the `mcp` extra and register
-the `inferml-mcp` command. From a source checkout, `pip install -e ".[mcp]"`.
+| Platform | Launcher |
+| --- | --- |
+| Windows | `%APPDATA%\InferML\inferml-mcp.py` |
+| macOS | `~/Library/Application Support/InferML/inferml-mcp.py` |
+| Linux | `~/.config/InferML/inferml-mcp.py` |
 
-The extra pulls in just `mcp` and `httpx`. The inference stack lives in the
-server process, not here.
+Both that script and the Python next to it are at stable paths, so the commands
+below keep working across app updates.
 
 ## Connect
 
-Start the model server and leave it running:
-
-```bash
-inferml --no-browser
-```
+Launch the InferML app and leave it running.
 
 **Claude Code**
 
+```powershell
+# Windows (PowerShell)
+claude mcp add inferml -- "$env:APPDATA\InferML\venv\Scripts\python.exe" "$env:APPDATA\InferML\inferml-mcp.py"
+```
+
 ```bash
-claude mcp add inferml -- inferml-mcp
+# macOS
+claude mcp add inferml -- \
+  "$HOME/Library/Application Support/InferML/venv/bin/python" \
+  "$HOME/Library/Application Support/InferML/inferml-mcp.py"
+
+# Linux
+claude mcp add inferml -- \
+  "$HOME/.config/InferML/venv/bin/python" \
+  "$HOME/.config/InferML/inferml-mcp.py"
 ```
 
 **Claude Desktop** — add this to `claude_desktop_config.json` (Settings →
-Developer → Edit Config):
+Developer → Edit Config), substituting your real home directory (this file does
+not expand `$HOME` or `%APPDATA%`):
 
 ```json
 {
   "mcpServers": {
     "inferml": {
-      "command": "inferml-mcp"
+      "command": "C:\\Users\\<you>\\AppData\\Roaming\\InferML\\venv\\Scripts\\python.exe",
+      "args": ["C:\\Users\\<you>\\AppData\\Roaming\\InferML\\inferml-mcp.py"]
     }
   }
 }
 ```
 
-If the client can't find the command, use the absolute path that
-`pipx list` (or `which inferml-mcp`) prints. Restart the client after editing.
+Restart the client after editing.
 
-**Anything else** — `inferml-mcp` speaks MCP over stdio, so any client that can
-spawn a subprocess works. Pass `--url` if your server isn't on the default port.
+**Anything else** — the server speaks MCP over stdio, so any client that can
+spawn a subprocess works. Pass `--url` (after the script path) if the app isn't
+on the default port.
 
 ## Check it's working
 
@@ -141,10 +159,11 @@ minutes. Subsequent calls reuse it.
 ## Where files land
 
 Generated images and speech are written to `~/inferml-outputs`. Override per call
-with `output_path`, or globally:
+with `output_path`, or globally by setting `INFERML_MCP_OUTPUT_DIR` — or by
+appending the flag after the launcher path:
 
 ```bash
-inferml-mcp --output-dir /path/to/outputs
+… inferml-mcp.py --output-dir /path/to/outputs
 ```
 
 ## Configuration
@@ -160,8 +179,11 @@ To point Claude at an InferML running on another port or machine:
 {
   "mcpServers": {
     "inferml": {
-      "command": "inferml-mcp",
-      "args": ["--url", "http://192.168.1.50:11500"]
+      "command": "C:\\Users\\<you>\\AppData\\Roaming\\InferML\\venv\\Scripts\\python.exe",
+      "args": [
+        "C:\\Users\\<you>\\AppData\\Roaming\\InferML\\inferml-mcp.py",
+        "--url", "http://192.168.1.50:11500"
+      ]
     }
   }
 }

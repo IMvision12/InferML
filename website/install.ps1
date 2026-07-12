@@ -1,81 +1,77 @@
-# InferML installer (Windows / PowerShell)
+# InferML installer for Windows.
 #
 #   irm https://inferml.vercel.app/install.ps1 | iex
 #
-# Installs the `inferml` command via pipx. InferML is a Python app, so it needs
-# an existing Python 3.10+ - this script does NOT install Python. If Python is
-# missing (or too old) it stops and tells you where to get it.
+# Fetches the latest desktop installer from GitHub Releases and runs it silently
+# (per-user - no admin rights needed), then launches the app. This is the same
+# .exe the website's Download button hands you; the script just saves you the
+# click and always resolves the newest version.
 
-function Install-InferML {
-  # Native tools (pip / pipx) routinely print to stderr - pipx's version probe
-  # emits "No module named pipx", pip emits PATH warnings. In Windows PowerShell
-  # 5.1, if the caller's session has $ErrorActionPreference = 'Stop', that stderr
-  # becomes a *terminating* error and aborts the install. Control flow here is
-  # driven by explicit $LASTEXITCODE checks, so we run under 'Continue'. Setting
-  # it inside this function keeps it local - the caller's session is untouched.
-  $ErrorActionPreference = 'Continue'
+$ErrorActionPreference = 'Stop'
 
-  function Info($m) { Write-Host $m -ForegroundColor DarkGray }
-  function Ok($m)   { Write-Host $m -ForegroundColor Green }
-  function Warn($m) { Write-Host $m -ForegroundColor Yellow }
+$Repo = 'IMvision12/InferML'
+$AppName = 'InferML'
 
-  # --- require Python 3.10+ (we do not install it) ---------------------------
-  $py = $null
-  foreach ($c in @('python', 'python3', 'py')) {
-    if (Get-Command $c -ErrorAction SilentlyContinue) {
-      & $c -c 'import sys; sys.exit(0 if sys.version_info[:2] >= (3, 10) else 1)' 2>$null
-      if ($LASTEXITCODE -eq 0) { $py = $c; break }
-    }
-  }
+function Info($msg) { Write-Host ">> $msg" -ForegroundColor Cyan }
+function Warn($msg) { Write-Host "!! $msg" -ForegroundColor Yellow }
+function Die($msg)  { Write-Host "xx $msg" -ForegroundColor Red; exit 1 }
 
-  if (-not $py) {
-    Write-Host @'
-InferML needs Python 3.10 or newer, which wasn't found on your PATH.
+Info "Installing $AppName"
 
-Install Python first - https://www.python.org/downloads/
-(tick "Add python.exe to PATH" in the installer), then re-run:
-
-    irm https://inferml.vercel.app/install.ps1 | iex
-'@ -ForegroundColor Red
-    return
-  }
-  Info ("Using " + (& $py --version) + " (" + (Get-Command $py).Source + ")")
-
-  # --- ensure pipx ------------------------------------------------------------
-  & $py -m pipx --version *> $null
-  if ($LASTEXITCODE -ne 0) {
-    Info 'Installing pipx...'
-    # Stream pip's output (stdout + stderr) as plain text. Windows PowerShell
-    # 5.1 otherwise renders native stderr - even benign progress lines - as red
-    # NativeCommandError records; piping through Write-Host keeps it plain.
-    & $py -m pip install --user pipx 2>&1 | ForEach-Object { Write-Host "$_" }
-    if ($LASTEXITCODE -ne 0) { Write-Host "Couldn't install pipx. Try:  $py -m pip install --user pipx" -ForegroundColor Red; return }
-    & $py -m pipx ensurepath *> $null
-  }
-
-  # --- install InferML (server only; the app installs the CPU/GPU stack on first
-  #     launch, so we don't pull torch here) --------------------------------------
-  Info 'Installing the InferML server...'
-  # Install if missing, then upgrade to latest if it was already there. We do
-  # NOT use `pipx install --force`: with the uv backend it fails to clear an
-  # existing venv ("A virtual environment already exists"). install + upgrade
-  # covers fresh installs and updates without recreating the venv, on both the
-  # uv and pip backends.
-  # Output is streamed through Write-Host so pipx's stderr progress lines render
-  # as plain text, not red NativeCommandError records (Windows PowerShell 5.1).
-  & $py -m pipx install inferml 2>&1 | ForEach-Object { Write-Host "$_" }
-  if ($LASTEXITCODE -ne 0) { Write-Host 'Install failed. See the output above.' -ForegroundColor Red; return }
-  & $py -m pipx upgrade inferml 2>&1 | ForEach-Object { Write-Host "$_" }
-
-  Write-Host ''
-  Ok 'InferML is installed.'
-  Write-Host ''
-  Info 'Start it with:'
-  Write-Host '    inferml' -ForegroundColor Green
-  Info 'then open http://localhost:11500 in your browser.'
-  Info 'On first launch, pick CPU or GPU to install the model runtime (PyTorch + transformers).'
-  Write-Host ''
-  Warn "If the 'inferml' command isn't found, open a new terminal - pipx just updated your PATH."
+# --- Python check -------------------------------------------------------------
+# InferML runs models with your own Python. The app shows a friendly screen if
+# it's missing, so this is a warning and not a hard stop.
+$pythonOk = $false
+foreach ($cand in @(@('py', @('-3')), @('python', @()), @('python3', @()))) {
+    try {
+        $out = & $cand[0] @($cand[1] + @('-c', 'import sys; print("%d.%d" % sys.version_info[:2])')) 2>$null
+        if ($LASTEXITCODE -eq 0 -and $out) {
+            $parts = "$out".Trim().Split('.')
+            if ([int]$parts[0] -eq 3 -and [int]$parts[1] -ge 10) { $pythonOk = $true; break }
+        }
+    } catch { }
+}
+if (-not $pythonOk) {
+    Warn "Python 3.10+ was not found. InferML needs it to run models."
+    Warn "Get it from https://www.python.org/downloads/ (tick 'Add python.exe to PATH')."
+    Warn "Installing anyway - the app will walk you through it on first launch."
 }
 
-Install-InferML
+# --- Resolve the latest release ----------------------------------------------
+Info "Looking up the latest release"
+try {
+    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest" `
+                                 -Headers @{ 'User-Agent' = 'inferml-installer' }
+} catch {
+    Die "Could not reach GitHub: $($_.Exception.Message)"
+}
+
+$asset = $release.assets | Where-Object { $_.name -like '*.exe' } | Select-Object -First 1
+if (-not $asset) { Die "The latest release ($($release.tag_name)) has no Windows installer." }
+
+# --- Download + install -------------------------------------------------------
+$dest = Join-Path $env:TEMP $asset.name
+Info "Downloading $($asset.name) ($([math]::Round($asset.size / 1MB, 1)) MB)"
+try {
+    $wc = New-Object System.Net.WebClient
+    $wc.Headers.Add('User-Agent', 'inferml-installer')
+    $wc.DownloadFile($asset.browser_download_url, $dest)
+} catch {
+    Die "Download failed: $($_.Exception.Message)"
+}
+
+Info "Running the installer"
+# /S = silent. The build is per-user, so this needs no elevation.
+$proc = Start-Process -FilePath $dest -ArgumentList '/S' -Wait -PassThru
+Remove-Item $dest -Force -ErrorAction SilentlyContinue
+
+if ($proc.ExitCode -ne 0) { Die "The installer exited with code $($proc.ExitCode)." }
+
+$exe = Join-Path $env:LOCALAPPDATA "Programs\$AppName\$AppName.exe"
+if (-not (Test-Path $exe)) {
+    Info "$AppName $($release.tag_name) installed. Launch it from the Start menu."
+    exit 0
+}
+
+Info "$AppName $($release.tag_name) installed. Starting it now."
+Start-Process -FilePath $exe

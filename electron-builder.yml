@@ -1,0 +1,91 @@
+# electron-builder: produce the installers published to GitHub Releases.
+#
+#   Windows  InferML-Setup-<v>.exe          (NSIS, x64)
+#   macOS    InferML-<v>-{arm64,x64}.dmg    (+ .zip, required by electron-updater)
+#   Linux    InferML-<v>.AppImage, .deb     (x64)
+#
+# What ships inside: the Electron shell + the `python/` source tree (engine,
+# FastAPI server, and the compiled web UI that `npm run build` bundles into
+# python/server/webui). What does NOT ship: a Python interpreter, torch, or any
+# model weights. The app finds the user's Python, builds a venv under userData,
+# and the onboarding screen installs the inference stack into it on first run.
+
+appId: app.inferml
+productName: InferML
+copyright: Copyright © 2026 InferML
+
+directories:
+  output: dist-app
+  # The repo's `build/` already holds Python packaging leftovers, which is also
+  # electron-builder's default buildResources location. Point somewhere else so
+  # the two never fight.
+  buildResources: assets
+
+# The renderer is NOT listed here: it is served to the window by the Python
+# server out of python/server/webui, so it travels with extraResources instead.
+files:
+  - src/main/**/*
+  - package.json
+  - "!**/node_modules/*/{test,__tests__,tests,example,examples,doc,docs}/**"
+
+extraResources:
+  - from: python
+    to: python
+    filter:
+      - "**/*"
+      # Generated/local junk that must never reach a user's machine.
+      - "!**/__pycache__/**"
+      - "!**/*.py[cod]"
+      - "!**/*.egg-info/**"
+      - "!test_outputs/**"
+      - "!_test_results.jsonl"
+  # The tray icon is loaded at runtime (src/main/tray.js), not just baked into
+  # the executable by the `icon` fields below - so the file itself has to ship.
+  - from: assets/logo.png
+    to: logo.png
+
+# Unsigned builds. Users will see SmartScreen (Windows) and Gatekeeper (macOS)
+# warnings on first launch until real certificates are configured; see README.
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: assets/logo.png
+
+nsis:
+  oneClick: false                     # let the user choose the install dir
+  allowToChangeInstallationDirectory: true
+  perMachine: false                   # per-user install needs no admin rights
+  artifactName: ${productName}-Setup-${version}.${ext}
+  shortcutName: InferML
+  createDesktopShortcut: true
+
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip           # electron-updater cannot update from a .dmg alone
+      arch: [arm64, x64]
+  icon: assets/logo.png
+  category: public.app-category.developer-tools
+  identity: null            # ad-hoc / unsigned until certs exist
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+  icon: assets/logo.png
+  category: Development
+  synopsis: Run any Hugging Face model locally
+  artifactName: ${productName}-${version}.${ext}
+
+publish:
+  provider: github
+  owner: IMvision12
+  repo: InferML
