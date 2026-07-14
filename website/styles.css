@@ -983,7 +983,7 @@ a { color: inherit; text-decoration: none; }
 .cmd-copy:hover { color: var(--fg); background: var(--bg-4); border-color: var(--fg-3); transform: translateY(-1px); }
 .cmd-copy-ic { display: block; flex-shrink: 0; }
 .cmd-copy.is-copied { color: var(--ok); border-color: rgba(16, 185, 129, 0.5); background: rgba(16, 185, 129, 0.12); }
-.cta-sub code, .install-foot code {
+.cta-sub code {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.9em;
   padding: 2px 6px;
@@ -1043,14 +1043,6 @@ a { color: inherit; text-decoration: none; }
 .step .cmd { display: flex; width: 100%; padding: 10px 8px 10px 12px; gap: 8px; border-radius: 10px; }
 .step .cmd-text { font-size: 12.5px; }
 .step .cmd-copy { height: 28px; padding: 0 9px; font-size: 11.5px; }
-.install-foot {
-  text-align: center;
-  margin-top: 30px;
-  font-size: 13px;
-  color: var(--fg-3);
-  line-height: 1.9;
-}
-
 
 /* ─── hero CTA: download button + one-liner, side by side ──────────────── */
 .cta-row {
@@ -1066,15 +1058,6 @@ a { color: inherit; text-decoration: none; }
   .cta-row { flex-direction: column; gap: 14px; }
   .cta-row .cmd-hero { width: 100%; }
 }
-
-/* ─── secondary download links (Intel Mac, .deb, all releases) ─────────── */
-.dl-alt {
-  max-width: 940px; margin: 18px auto 0;
-  text-align: center; font-size: 13px; color: var(--fg-3);
-}
-.dl-alt a { color: var(--fg-2); border-bottom: 1px solid var(--border); transition: color 0.15s, border-color 0.15s; }
-.dl-alt a:hover { color: var(--accent); border-color: var(--accent); }
-.dl-alt code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 
 /* ─── install section: terminal alternative divider ────────────────────── */
 .install-alt {
@@ -1162,8 +1145,34 @@ a { color: inherit; text-decoration: none; }
 .dl-card-ic { display: block; margin-bottom: 4px; color: var(--fg-2); }
 .dl-card-os { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; color: var(--fg); }
 .dl-card-meta { font-size: 12.5px; color: var(--fg-3); font-family: 'JetBrains Mono', monospace; }
-/* The visitor's own OS (set by script.js) */
-.dl-card.is-you { border-color: rgba(96, 165, 250, 0.5); box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.22); }
+
+/* ─── first-launch warnings (the app is unsigned on every platform) ─────── */
+.first-run { max-width: 940px; margin: 22px auto 0; }
+.first-run-lead {
+  text-align: center; font-size: 13px; color: var(--fg-3);
+  margin: 0 0 14px; line-height: 1.7;
+}
+.first-run-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 760px) { .first-run-grid { grid-template-columns: 1fr; } }
+.fr {
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 16px 18px;
+}
+.fr-os {
+  display: block; margin-bottom: 6px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--fg-2);
+}
+.fr p { margin: 0; font-size: 13px; line-height: 1.7; color: var(--fg-3); }
+.fr b { color: var(--fg); font-weight: 600; }
+.fr code {
+  display: inline-block; margin-top: 2px; padding: 2px 6px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11.5px;
+  background: var(--bg-3); border: 1px solid var(--border); border-radius: 4px;
+  color: var(--fg-2);
+  /* The macOS xattr line is long and must not push the card wider than its grid cell. */
+  max-width: 100%; overflow-wrap: anywhere;
+}
 
 /* --- Optional local API + MCP ------------------------------------------- */
 .api { max-width: 1200px; margin: 140px auto 0; padding: 0 32px; }

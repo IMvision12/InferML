@@ -130,14 +130,10 @@
     linux: () => ASSET.linux,
   };
 
-  // Platform cards: Windows and Linux are already correct in the markup; macOS is
-  // the only one that needs resolving, since its arch isn't known until now.
+  // Platform cards. They state what each platform gets; they are not links and nothing
+  // here gives them one. Downloading is the hero button's job (and the links below the
+  // cards), so a Windows visitor can't click the macOS card and land a .dmg they can't open.
   const KEY = { windows: 'win', mac: 'mac', linux: 'linux' };
-  const macCard = document.querySelector('.dl-card[data-os="mac"]');
-  if (macCard) macCard.href = DL(macAsset());
-
-  const you = document.querySelector(`.dl-card[data-os="${KEY[os]}"]`);
-  if (you) you.classList.add('is-you');
 
   // Hero button: point it at this visitor's build and say which one it is.
   const hero = document.getElementById('hero-dl');
@@ -152,12 +148,12 @@
   }
 
   // ── Compatibility bridge for releases built before the filenames dropped their
-  // version (v2.0.0 shipped `InferML-Setup-2.0.0.exe`, which the stable URLs above
+  // version (v2.0.0 shipped `InferML-Setup-2.0.0.exe`, which the stable URL above
   // cannot name). Ask the API what the newest release actually contains and match
-  // by pattern, so the buttons work regardless of which naming scheme is live.
+  // by pattern, so the button works regardless of which naming scheme is live.
   //
   // This is an upgrade, never a downgrade: if the API is rate-limited, offline, or
-  // returns nothing, the hard-coded links above stand and the buttons still work.
+  // returns nothing, the hard-coded link above stands and the button still works.
   const MATCH = {
     win: /\.exe$/i,
     linux: /\.AppImage$/i,
@@ -173,29 +169,11 @@
     .then((r) => (r.ok ? r.json() : Promise.reject(new Error('no release'))))
     .then((rel) => {
       const assets = rel.assets || [];
-      const macKey = macIsIntel() ? 'macIntel' : 'macArm';
-      const real = {
-        win: findAsset(assets, MATCH.win),
-        linux: findAsset(assets, MATCH.linux),
-        mac: findAsset(assets, MATCH[macKey]),
-      };
-
-      document.querySelectorAll('.dl-card').forEach((el) => {
-        const url = real[el.getAttribute('data-os')];
-        if (url) el.href = url;
-      });
-      const heroUrl = real[KEY[os]];
+      const key = os === 'mac' ? (macIsIntel() ? 'macIntel' : 'macArm') : KEY[os];
+      const heroUrl = findAsset(assets, MATCH[key]);
       if (hero && heroUrl) hero.href = heroUrl;
-
-      // Same for the secondary links, which name specific builds.
-      const intel = findAsset(assets, MATCH.macIntel);
-      const deb = findAsset(assets, /\.deb$/i);
-      document.querySelectorAll('.dl-alt a').forEach((a) => {
-        if (/x64\.dmg/i.test(a.href) && intel) a.href = intel;
-        else if (/\.deb/i.test(a.href) && deb) a.href = deb;
-      });
     })
-    .catch(() => { /* keep the hard-coded stable URLs */ });
+    .catch(() => { /* keep the hard-coded stable URL */ });
 
   // The hero command ships as the curl/sh line; Windows visitors get PowerShell.
   if (os === 'windows') {
