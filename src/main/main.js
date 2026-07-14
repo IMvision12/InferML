@@ -29,6 +29,7 @@ const { initUpdater } = require('./updater');
 const { writeMcpLauncher, launcherPath } = require('./mcp-setup');
 const { migrateLegacyData } = require('./migrate');
 const { createTray, destroyTray } = require('./tray');
+const { showOutput, closeViewer } = require('./viewer');
 
 const isDev = !app.isPackaged;
 
@@ -165,6 +166,7 @@ function showWindow() {
 function quitApp() {
   isQuitting = true;
   if (runner) runner.stop();
+  closeViewer();
   destroyTray();
   app.quit();
 }
@@ -244,6 +246,11 @@ if (!app.requestSingleInstanceLock()) {
       version: app.getVersion(),
     });
 
+    // Results produced by the local API (and so by the MCP server) get a window
+    // of their own. Nothing the app itself runs comes through here - workspaces
+    // render their own output - so this only ever fires for an outside caller.
+    runner.on('viewer:output', (data) => showOutput(data));
+
     // Registered before any window exists, let alone loads. The renderer asks
     // for state the moment it mounts, and an ipcMain handler that isn't there
     // yet throws "No handler registered for ..." instead of answering.
@@ -287,11 +294,53 @@ ipcMain.handle('boot:open-python-download', async () => {
   await shell.openExternal('https://www.python.org/downloads/');
 });
 
-// The exact command that registers this install as an MCP server. Both paths are
-// stable across app updates, which is the whole point of the generated launcher.
+// What each client needs in order to register this install as an MCP server.
+// Both paths are stable across app updates - the whole point of the generated
+// launcher - so these can be copied once and forgotten.
+//
+// Every client runs the same stdio server and only disagrees about how you
+// register it. Claude Code and Codex have a CLI (`<cli> mcp add <name> -- <cmd>`,
+// written to ~/.claude.json and ~/.codex/config.toml). Claude Desktop has none:
+// it reads a JSON file, so the `claude mcp add` command does *not* register it
+// there - a genuinely easy thing to get wrong, hence its own row.
+//
+// The Codex surfaces do not need one each: the Codex CLI, the desktop app and
+// the IDE extension all share ~/.codex/config.toml, so `codex mcp add` registers
+// InferML with all three at once.
 ipcMain.handle('inferml:mcpCommand', async () => {
   const userData = app.getPath('userData');
+  const py = venvPython(userData);
+  const launcher = launcherPath(userData);
+  const add = (cli) => `${cli} mcp add inferml -- "${py}" "${launcher}"`;
+
+  // appData maps to the right place on every platform: %APPDATA% on Windows,
+  // ~/Library/Application Support on macOS, ~/.config on Linux.
+  const desktopConfig = path.join(app.getPath('appData'), 'Claude', 'claude_desktop_config.json');
+  // JSON.stringify does the backslash escaping the file needs, so the snippet is
+  // paste-ready rather than something the user has to fix up by hand.
+  const desktopSnippet = JSON.stringify(
+    { mcpServers: { inferml: { command: py, args: [launcher] } } }, null, 2);
+
   return {
-    command: `claude mcp add inferml -- "${venvPython(userData)}" "${launcherPath(userData)}"`,
+    clients: [
+      {
+        id: 'claude', label: 'Claude Code', copyLabel: 'Copy command',
+        hint: 'Run this once in a terminal. Registers Claude Code only - Claude Desktop is separate.',
+        command: add('claude'),
+      },
+      {
+        id: 'codex', label: 'Codex', copyLabel: 'Copy command',
+        // Unlike Claude, one registration covers every Codex surface: the CLI,
+        // the desktop app and the IDE extension all read ~/.codex/config.toml.
+        hint: 'Run this once in a terminal. Covers the CLI, the desktop app and the IDE extension.',
+        command: add('codex'),
+      },
+      {
+        id: 'claude-desktop', label: 'Claude Desktop', copyLabel: 'Copy config',
+        hint: 'No CLI - merge this into the config file, then restart Claude Desktop.',
+        value: desktopConfig,
+        command: desktopSnippet,
+      },
+    ],
   };
 });

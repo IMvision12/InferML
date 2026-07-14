@@ -24,6 +24,7 @@ from api.media import (
     MediaError, resolve_media_model, installed_task,
     to_image_data_url, bytes_to_data_url, data_url_bytes, parse_size,
 )
+from api import viewer
 
 router = APIRouter(prefix="/v1")
 
@@ -133,6 +134,11 @@ async def _media_run(model_req, tasks: tuple, fallback, inputs: dict, params: di
     async with deps.INFERENCE_LOCK:
         deps.clear_stop()
         out = await deps.run_blocking(eng.run, mid, hint, inputs, params)
+    # Every media result an outside caller ever gets passes through here, which
+    # makes this the one place worth announcing from. The app's own workspaces
+    # do not come this way - they render inline - so the viewer window only ever
+    # opens for the API and the MCP server. See api/viewer.py.
+    viewer.publish(mid, hint, out)
     return mid, out
 
 def _media_err(e: Exception):

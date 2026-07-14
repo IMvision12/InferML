@@ -462,7 +462,7 @@ function HardwareSection({ hw, pyStatus, pySetup, runSetup, refreshPyStatus }) {
 function ApiSection() {
   const [st, setSt] = useStateS(null);
   const [busy, setBusy] = useStateS(false);
-  const [mcp, setMcp] = useStateS('');
+  const [mcp, setMcp] = useStateS([]);   // [{ id, label, command }] - one per client
   const [copied, setCopied] = useStateS(null);
 
   const refresh = async () => {
@@ -471,7 +471,7 @@ function ApiSection() {
 
   useEffectS(() => {
     refresh();
-    window.inferml?.api?.mcpCommand?.().then((r) => setMcp(r?.command || '')).catch(() => {});
+    window.inferml?.api?.mcpCommand?.().then((r) => setMcp(r?.clients || [])).catch(() => {});
   }, []);
 
   const toggle = async () => {
@@ -531,32 +531,28 @@ function ApiSection() {
           />
         )}
       </div>
-      <p className="s-note">
-        The API binds to localhost only and is never reachable from your network. It does
-        not serve the InferML interface - a browser pointed at it gets nothing. It is
-        unauthenticated, though, so any program running as you can use it while it's on.
-      </p>
 
       <h3 className="s-h">MCP server</h3>
-      <div className="s-card">
-        <Row
-          title="Register with Claude"
-          sub={running
-            ? 'Run this once. It shares the models this app already has loaded.'
-            : 'Turn the API on first - the MCP server connects to it.'}
-          control={
-            <button className="mc-btn ghost" onClick={() => copy(mcp, 'mcp')} disabled={!mcp}>
-              {copied === 'mcp' ? 'Copied' : 'Copy command'}
+      {mcp.map((c) => (
+        // One card per client: the name, what to do with the thing, and the
+        // thing itself. The previous shape - a row per client, then a stack of
+        // captioned code blocks underneath - made you match up two lists by eye.
+        <div className="s-card mcp" key={c.id}>
+          <div className="mcp-head">
+            <div className="mcp-l">
+              <div className="s-row-t">{c.label}</div>
+              <div className="s-row-s">
+                {running ? c.hint : 'Turn the API on first - the MCP server connects to it.'}
+              </div>
+            </div>
+            <button className="mc-btn ghost" onClick={() => copy(c.command, c.id)}>
+              {copied === c.id ? 'Copied' : (c.copyLabel || 'Copy')}
             </button>
-          }
-        />
-      </div>
-      {mcp && <pre className="s-code mono">{mcp}</pre>}
-      <p className="s-note">
-        Gives Claude object detection, segmentation, image generation, transcription,
-        speech, embeddings and text generation against your local models. Keep InferML
-        running while you use them.
-      </p>
+          </div>
+          {c.value && <div className="mcp-path mono">{c.value}</div>}
+          <pre className="s-code mono">{c.command}</pre>
+        </div>
+      ))}
     </div>
   );
 }

@@ -320,6 +320,22 @@ input, textarea { font: inherit; color: inherit; background: none; border: none;
 /* Explanatory paragraph under a settings card, and the copy-pasteable command
    block in the API & MCP section. */
 .s-note { font-size: 12px; line-height: 1.6; color: var(--fg-2); margin: 10px 2px 22px; }
+
+/* One MCP client per card: heading + hint on the left, Copy on the right, and
+   the command (or config snippet) below it. The hint is a full-width block
+   rather than a table cell - squeezed into a column beside a long path it wraps
+   to one word per line. */
+.mcp { padding: 14px; margin-bottom: 10px; }
+.mcp-head { display: flex; align-items: flex-start; gap: 12px; }
+.mcp-l { flex: 1; min-width: 0; }
+.mcp .mc-btn { flex: none; }
+.mcp-path {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--fg-2);
+  word-break: break-all;
+  user-select: text;
+}
 .s-code {
   margin: 10px 0 0;
   padding: 10px 12px;

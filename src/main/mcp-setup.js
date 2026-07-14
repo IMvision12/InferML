@@ -11,6 +11,12 @@
  * rewrites it on every boot so it always points at the current install:
  *
  *   claude mcp add inferml -- <userData>/venv/.../python <userData>/inferml-mcp.py
+ *   codex  mcp add inferml -- <userData>/venv/.../python <userData>/inferml-mcp.py
+ *
+ * Every client runs that same stdio server and only disagrees about where the
+ * registration is recorded (~/.claude.json, ~/.codex/config.toml, or Claude
+ * Desktop's claude_desktop_config.json). Settings -> API & MCP prints the exact
+ * command for each one.
  *
  * `mcp` and `httpx` are in the base venv (see python-env.SERVER_DEPS), so the
  * launcher has everything it needs.
@@ -38,6 +44,7 @@ Launches the InferML MCP server against the Python tree inside the currently
 installed app. Rewritten on every launch, so it survives app updates.
 
     claude mcp add inferml -- "${launcherPath(userData).replace(/\\/g, '\\\\')}"
+    codex  mcp add inferml -- "${launcherPath(userData).replace(/\\/g, '\\\\')}"
 """
 import sys
 
