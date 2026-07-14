@@ -19,12 +19,15 @@
     -webkit-user-select: none; user-select: none;
   }
   .wrap { width: 560px; max-width: calc(100vw - 64px); }
+  /* The app's own mark (components/icons.jsx Logo), inlined - the boot page runs
+     before the renderer bundle exists, so it cannot import it. The purple "IM"
+     square that used to live here appeared nowhere else in the product, which
+     made the first thing a user ever saw the one screen that was off-brand. */
   .mark {
-    width: 44px; height: 44px; border-radius: 12px; margin: 0 auto 22px;
-    background: linear-gradient(135deg, var(--accent), #9d6dff);
+    width: 44px; height: 44px; margin: 0 auto 22px;
     display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: 19px; color: #fff;
   }
+  .mark svg { display: block; }
   h1 { margin: 0 0 8px; font-size: 19px; font-weight: 600; text-align: center; }
   p  { margin: 0; color: var(--muted); text-align: center; }
   .step { margin-top: 22px; display: flex; align-items: center; justify-content: center; gap: 10px; }
@@ -79,7 +82,32 @@
 </style>
 
 <div class="wrap">
-  <div class="mark">IM</div>
+  <div class="mark">
+    <svg width="44" height="44" viewBox="0 0 128 128" aria-label="InferML">
+      <defs>
+        <linearGradient id="logo-bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#1F2937"/>
+          <stop offset="100%" stop-color="#0F172A"/>
+        </linearGradient>
+      </defs>
+      <rect x="4" y="4" width="120" height="120" rx="26" fill="url(#logo-bg)"/>
+      <g stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-opacity="0.85">
+        <line x1="32" y1="40" x2="60" y2="28"/>
+        <line x1="60" y1="28" x2="88" y2="52"/>
+        <line x1="88" y1="52" x2="54" y2="68"/>
+        <line x1="54" y1="68" x2="40" y2="96"/>
+        <line x1="88" y1="52" x2="96" y2="88"/>
+      </g>
+      <g fill="#60a5fa">
+        <circle cx="32" cy="40" r="5"/>
+        <circle cx="60" cy="28" r="4"/>
+        <circle cx="88" cy="52" r="7"/>
+        <circle cx="54" cy="68" r="5"/>
+        <circle cx="96" cy="88" r="4"/>
+        <circle cx="40" cy="96" r="5"/>
+      </g>
+    </svg>
+  </div>
 
   <!-- state: booting -->
   <section id="loading">

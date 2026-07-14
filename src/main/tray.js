@@ -14,13 +14,9 @@
 const { app, Menu, Tray, nativeImage } = require('electron');
 const path = require('path');
 
-let tray = null;
+const { iconPath } = require('./branding');
 
-function iconPath() {
-  return app.isPackaged
-    ? path.join(process.resourcesPath, 'logo.png')
-    : path.join(__dirname, '..', '..', 'assets', 'logo.png');
-}
+let tray = null;
 
 function trayImage() {
   // The source art is 1024x1024; a tray needs ~16-22px. Electron will happily

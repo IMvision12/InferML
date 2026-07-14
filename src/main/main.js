@@ -30,6 +30,7 @@ const { writeMcpLauncher, launcherPath } = require('./mcp-setup');
 const { migrateLegacyData } = require('./migrate');
 const { createTray, destroyTray } = require('./tray');
 const { showOutput, closeViewer } = require('./viewer');
+const { appIcon } = require('./branding');
 
 const isDev = !app.isPackaged;
 
@@ -99,6 +100,7 @@ let ipc = null;
 let booted = false;
 let isQuitting = false;
 
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1280,
@@ -108,6 +110,10 @@ function createWindow() {
     show: false,
     backgroundColor: '#0b0d12',
     title: 'InferML',
+    // Needed for the title bar and taskbar in dev: electron-builder's `win.icon`
+    // only stamps the packaged .exe, so `npm start` otherwise shows Electron's
+    // own atom. `...(x && {icon: x})` because a null icon key is worse than none.
+    ...(appIcon() ? { icon: appIcon() } : {}),
     autoHideMenuBar: true,   // belt-and-braces: no menu strip, and no Alt to reveal one
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -237,6 +243,22 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', () => showWindow());
 
   app.whenReady().then(() => {
+    // Branding is per-platform, and none of these three cover for each other:
+    //
+    //  win32  the taskbar groups by App User Model ID. Without this the dev app
+    //         inherits Electron's and shows up as Electron whatever the window
+    //         icon says. Must match `appId` in electron-builder.yml, or a
+    //         packaged install and a dev run fight over the same pinned slot.
+    //  darwin BrowserWindow's `icon` option is *ignored*. The icon comes from the
+    //         bundle's .icns, which only a packaged build has - so `npm start`
+    //         shows Electron in the Dock unless we set it explicitly.
+    //  linux  the window `icon` we pass in createWindow() is all it needs.
+    if (process.platform === 'win32') app.setAppUserModelId('app.inferml');
+    if (process.platform === 'darwin' && app.dock && !app.isPackaged) {
+      const img = appIcon();
+      if (img) app.dock.setIcon(img);
+    }
+
     installMenu();
 
     runner = new PythonRunner({

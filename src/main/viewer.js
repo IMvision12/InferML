@@ -27,6 +27,8 @@
 const { BrowserWindow } = require('electron');
 const path = require('path');
 
+const { appIcon } = require('./branding');
+
 /** Keep the last N results in the window; each one holds a base64 blob. */
 const MAX_RESULTS = 20;
 
@@ -43,6 +45,7 @@ function create() {
     show: false,
     backgroundColor: '#0b0d12',
     title: 'InferML - Output',
+    ...(appIcon() ? { icon: appIcon() } : {}),
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'viewer-preload.js'),
