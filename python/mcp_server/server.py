@@ -196,29 +196,58 @@ async def download_model(model_id: str) -> dict:
 @mcp.tool()
 async def detect_objects(image_path: str, labels: list[str] | None = None,
                          threshold: float | None = None,
-                         model: str = "") -> dict:
-    """Detect objects in an image and return their labels, scores, and boxes.
+                         model: str = "", output_path: str = "") -> list:
+    """Detect objects in an image, show the boxes drawn on it, and list what was found.
 
     Pass `labels` (e.g. ["a cat", "a traffic light"]) to run *open-vocabulary*
     detection, which finds arbitrary things described in words. Omit it to use
     a fixed-vocabulary detector over the 80 COCO classes.
 
-    Boxes are normalized to [0,1] as {x, y, w, h} with the origin top-left,
-    so they're resolution-independent.
+    Returns the annotated image plus each object's label, confidence, and box.
+    Boxes are normalized to [0,1] as x/y/w/h with the origin top-left, so they
+    are resolution-independent.
     """
-    payload: dict[str, Any] = {"image": _image_data_url(image_path)}
+    # `annotated` is opt-in on the endpoint - the engine draws the boxes either
+    # way, but only sends the PNG back when asked. Not asking meant this tool
+    # returned bare coordinates and the caller had no way to *see* the result:
+    # it had to talk the user through uploading the image somewhere else to get a
+    # picture of a detection it had already performed.
+    payload: dict[str, Any] = {"image": _image_data_url(image_path), "annotated": True}
     if model:
         payload["model"] = model
     if threshold is not None:
         payload["threshold"] = threshold
     if labels:
         payload["labels"] = labels
+
     body = await _client.post("/v1/image/detection", payload)
-    return {
-        "model": body.get("model"),
-        "count": len(body.get("data") or []),
-        "objects": body.get("data") or [],
-    }
+    objects = body.get("data") or []
+    found = body.get("model")
+
+    if objects:
+        lines = "\n".join(
+            "  {label}  {pct:.1f}%   box x={x:.3f} y={y:.3f} w={w:.3f} h={h:.3f}".format(
+                label=o.get("label"),
+                pct=float(o.get("score") or 0) * 100,
+                **{k: float((o.get("box") or {}).get(k) or 0) for k in ("x", "y", "w", "h")},
+            )
+            for o in objects
+        )
+        text = f"Detected {len(objects)} object(s) with {found}:\n{lines}"
+    else:
+        text = f"{found} found nothing above the confidence threshold."
+
+    annotated = body.get("annotated")
+    if not annotated:
+        return [text]
+
+    png = _decode_data_url(annotated)
+    dest = _out_path(f"detection-{Path(image_path).stem}.png", output_path)
+    dest.write_bytes(png)
+    return [
+        f"{text}\n\nAnnotated image saved to {dest}",
+        Image(data=png, format="png"),
+    ]
 
 
 @mcp.tool()
